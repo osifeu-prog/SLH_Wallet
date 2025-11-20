@@ -1,90 +1,38 @@
-
-<!doctype html>
-<html lang="he" dir="rtl">
+<!DOCTYPE html>
+<html lang="he">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <title>SLH Wallet 2.0</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <header>
+  <div class="container">
     <h1>SLH Wallet 2.0</h1>
-    <p>ארנק BNB/SLH מחובר לטלגרם ו-API</p>
-    <nav>
-      <a href="#wallet">ארנק</a>
-      <a href="#trade">מסחר</a>
-      <a href="#api">API</a>
-    </nav>
-  </header>
+    <p>ארנק BNB/SLH מחובר לבוט טלגרם ול-API.</p>
 
-  <main>
-    <section id="wallet">
-      <h2>ארנק משתמש</h2>
-      <form id="wallet-form">
-        <label>
-          Telegram ID:
-          <input type="text" id="telegram_id" required />
-        </label>
-        <label>
-          שם משתמש:
-          <input type="text" id="username" />
-        </label>
-        <label>
-          שם פרטי:
-          <input type="text" id="first_name" />
-        </label>
-        <label>
-          BNB Address:
-          <input type="text" id="bnb_address" />
-        </label>
-        <label>
-          SLH Address:
-          <input type="text" id="slh_address" />
-        </label>
-        <button type="submit">שמור ארנק</button>
-      </form>
+    <section>
+      <h2>ארנק</h2>
+      <label>Telegram ID:</label>
+      <input id="tg-id" value="224223270" />
+      <label>BNB Address:</label>
+      <input id="bnb-address" placeholder="0x..." />
+      <label>SLH Address:</label>
+      <input id="slh-address" placeholder="SLH-..." />
+      <button onclick="registerWallet()">שמירת ארנק</button>
+    </section>
+
+    <section>
+      <h2>בדיקת ארנק</h2>
+      <button onclick="fetchWallet()">בדיקת ארנק מה-API</button>
       <pre id="wallet-result"></pre>
     </section>
 
-    <section id="trade">
-      <h2>מסחר (Demo)</h2>
-      <form id="trade-form">
-        <label>
-          Telegram ID:
-          <input type="text" id="trade_telegram_id" required />
-        </label>
-        <label>
-          Token Symbol:
-          <input type="text" id="token_symbol" value="SLH" />
-        </label>
-        <label>
-          Amount:
-          <input type="number" step="0.00000001" id="amount" />
-        </label>
-        <label>
-          Price (BNB):
-          <input type="number" step="0.00000001" id="price_bnb" />
-        </label>
-        <button type="submit">צור הצעה</button>
-      </form>
-      <button id="load-offers">טען הצעות פעילות</button>
-      <pre id="trade-result"></pre>
+    <section>
+      <h2>מסחר</h2>
+      <button onclick="loadOffers()">טעינת הצעות</button>
+      <pre id="offers-result"></pre>
     </section>
-
-    <section id="api">
-      <h2>API / בדיקות</h2>
-      <p>
-        מסמכי API זמינים ב- <a href="/docs" target="_blank">/docs</a>.
-      </p>
-      <p id="meta-info">טוען מידע שירות...</p>
-    </section>
-  </main>
-
-  <footer>
-    <p>SLHNET &copy; 2025</p>
-  </footer>
-
-  <script src="/static/js/app.js"></script>
+  </div>
+  <script src="js/app.js"></script>
 </body>
 </html>
