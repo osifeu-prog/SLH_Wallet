@@ -7,7 +7,7 @@ class Settings:
     def __init__(self) -> None:
         self.env: str = os.getenv("ENV", "production")
         
-        # ✅ SECRET_KEY מאובטח - דורש הגדרה בסביבת production
+        # ✅ SECRET_KEY מאובטח
         self.secret_key: str = os.getenv("SECRET_KEY", "change-me")
         if self.env == "production" and self.secret_key == "change-me":
             raise ValueError("SECRET_KEY must be set in production environment!")
@@ -39,6 +39,10 @@ class Settings:
 
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
+        # ✅ API keys for blockchain
+        self.bscscan_api_key: str = os.getenv("BSCSCAN_API_KEY", "")
+        self.slh_token_address: str = os.getenv("SLH_TOKEN_ADDRESS", "0xACb0A09414CEA1C879c67bB7A877E4e19480f022")
+
         pm_raw = os.getenv(
             "PAYMENT_METHODS",
             '["BNB","SLH","CREDIT_CARD","BANK_TRANSFER"]',
@@ -62,11 +66,9 @@ class Settings:
                 "http://localhost:8000",
             ]
         else:
-            # בסביבת production - רק הדומיין הראשי שלך
             origins = []
             if self.base_url:
                 origins.append(self.base_url.rstrip('/'))
-            # אפשר להוסיף דומיינים נוספים כאן אם צריך
             return origins
 
     def as_meta(self) -> dict:
