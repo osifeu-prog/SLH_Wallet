@@ -39,7 +39,7 @@ def register_wallet(
         else:
             logger.info("Updating existing wallet for Telegram ID: %s", payload.telegram_id)
 
-        # ✅ עדכון כל השדות כולל החדשים
+        # ✅ עדכון כל השדות
         update_fields = [
             'username', 'first_name', 'last_name', 
             'bnb_address', 'slh_address',
@@ -125,14 +125,12 @@ async def upload_transfer_proof(
     description: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    # ✅ בדיקה שהמשתמש קיים
     wallet = db.get(models.Wallet, telegram_id)
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
     
     try:
         # ✅ כאן תוסיף לוגיקה אמיתית לשמירת הקובץ
-        # לדוגמה: שמירה ב-Amazon S3 או בשרת קבצים
         file_location = f"transfer_proofs/{telegram_id}_{file.filename}"
         
         return {
@@ -160,7 +158,7 @@ def get_wallet_details(
         raise HTTPException(status_code=404, detail="Wallet not found")
     
     return {
-        "wallet": wallet,
+        "wallet": schemas.WalletOut.from_orm(wallet),
         "has_metamask": bool(wallet.bnb_address),
         "has_bank_info": bool(wallet.bank_account_number),
         "registration_date": wallet.created_at
