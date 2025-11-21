@@ -2,34 +2,33 @@ import logging
 from typing import Dict, Optional
 import aiohttp
 import os
+from .config import settings
 
 logger = logging.getLogger("slh_wallet.blockchain")
 
 class BlockchainService:
     def __init__(self):
-        self.bscscan_api_key = os.getenv("BSCSCAN_API_KEY", "")
+        self.bscscan_api_key = settings.bscscan_api_key
         self.bsc_rpc_url = os.getenv("BSC_RPC_URL", "https://bsc-dataseed.binance.org/")
-        
-        # SLH Token Contract Address (תחליף עם הכתובת האמיתית)
-        self.slh_token_address = os.getenv("SLH_TOKEN_ADDRESS", "0x...")
+        self.slh_token_address = settings.slh_token_address
 
     async def get_bnb_balance(self, address: str) -> Optional[float]:
         """מקבל את יתרת BNB מכתובת"""
         try:
-            if not address or address == "0x":
+            if not address or address == "0x" or len(address) < 10:
                 return 0.0
                 
             async with aiohttp.ClientSession() as session:
-                # דרך 1: באמצעות BscScan API (מומלץ)
+                # באמצעות BscScan API
                 if self.bscscan_api_key:
                     url = f"https://api.bscscan.com/api?module=account&action=balance&address={address}&tag=latest&apikey={self.bscscan_api_key}"
                     async with session.get(url) as response:
                         data = await response.json()
-                        if data['status'] == '1':
+                        if data.get('status') == '1':
                             balance_wei = int(data['result'])
-                            return balance_wei / 10**18  # המרה ל-BNB
-                
-                # דרך 2: באמצעות RPC (גיבוי)
+                            return balance_wei / 10**18
+
+                # גיבוי עם RPC
                 payload = {
                     "jsonrpc": "2.0",
                     "method": "eth_getBalance",
@@ -53,12 +52,9 @@ class BlockchainService:
             if not address or address == "0x" or not self.slh_token_address:
                 return 0.0
 
-            # כאן צריך להוסיף קריאה ל-ERC20 balanceOf
-            # זה דורש אינטגרציה עם web3.py
-            # כרגע נחזיר mock data לצורך הדגמה
-            
-            # TODO: Implement actual SLH token balance check
-            return 500.0  # Mock data
+            # TODO: Implement actual SLH token balance check using web3
+            # For now return mock data
+            return 1500.0  # Mock data
             
         except Exception as e:
             logger.error("Error fetching SLH balance for %s: %s", address, e)
@@ -74,5 +70,6 @@ class BlockchainService:
             "bnb": bnb_balance,
             "slh": slh_balance,
         }
+
 
 blockchain_service = BlockchainService()
