@@ -6,7 +6,11 @@ from typing import List, Optional
 class Settings:
     def __init__(self) -> None:
         self.env: str = os.getenv("ENV", "production")
+        
+        # ✅ SECRET_KEY מאובטח - דורש הגדרה בסביבת production
         self.secret_key: str = os.getenv("SECRET_KEY", "change-me")
+        if self.env == "production" and self.secret_key == "change-me":
+            raise ValueError("SECRET_KEY must be set in production environment!")
 
         self.database_url: str = os.getenv(
             "DATABASE_URL",
@@ -47,6 +51,23 @@ class Settings:
     @property
     def base_url(self) -> str:
         return self.frontend_base_url or ""
+
+    @property
+    def allowed_origins(self) -> List[str]:
+        """✅ CORS מאובטח - רק דומיינים מורשים"""
+        if self.env == "development":
+            return [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:8000",
+            ]
+        else:
+            # בסביבת production - רק הדומיין הראשי שלך
+            origins = []
+            if self.base_url:
+                origins.append(self.base_url.rstrip('/'))
+            # אפשר להוסיף דומיינים נוספים כאן אם צריך
+            return origins
 
     def as_meta(self) -> dict:
         return {
