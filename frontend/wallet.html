@@ -1,158 +1,199 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>SLH Wallet – הגדרת ארנק</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #020617;
-      color: #e5e7eb;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .card {
-      background: #020617;
-      border-radius: 1rem;
-      padding: 1.75rem;
-      max-width: 520px;
-      width: 100%;
-      box-shadow: 0 20px 40px rgba(15,23,42,0.9);
-      border: 1px solid #1f2937;
-    }
-    label {
-      display: block;
-      margin-top: 0.75rem;
-      font-size: 0.9rem;
-      color: #9ca3af;
-    }
-    input {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      margin-top: 0.25rem;
-      border-radius: 0.5rem;
-      border: 1px solid #374151;
-      background: #020617;
-      color: #f9fafb;
-    }
-    input:focus {
-      outline: none;
-      border-color: #22c55e;
-    }
-    .btn {
-      margin-top: 1.25rem;
-      width: 100%;
-      border: none;
-      padding: 0.75rem;
-      border-radius: 999px;
-      font-weight: 600;
-      background: #22c55e;
-      color: #022c22;
-      cursor: pointer;
-    }
-    .btn:hover {
-      filter: brightness(1.05);
-    }
-    .status {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      min-height: 1.2rem;
-    }
-    .status.ok { color: #4ade80; }
-    .status.err { color: #f87171; }
-    small {
-      color: #6b7280;
-      font-size: 0.75rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLH Wallet - ניהול ארנק</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .section { margin-bottom: 2rem; padding: 1rem; border: 1px solid #eee; border-radius: 8px; }
+        .metamask-btn { background: #f6851b; margin-left: 1rem; }
+        .bank-section { background: #f8f9fa; }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <h2>הגדרת ארנק SLH / BNB</h2>
-    <p>
-      טופס זה מחבר בין משתמש הטלגרם שלך לבין כתובות הארנק ב־BNB ו־SLH.
-    </p>
+    <div class="container">
+        <h1>🧳 הגדרת ארנק SLH / BNB</h1>
+        <p>טופס זה מחבר בין משתמש הטלגרם שלך לבין כתובות הארנק ופרטי הבנק.</p>
+        
+        <div id="message" style="display: none;"></div>
 
-    <label>Telegram ID</label>
-    <input id="telegram_id" placeholder="למשל 224223270" />
+        <form id="walletForm">
+            <div class="section">
+                <h2>📱 פרטי טלגרם</h2>
+                <div class="form-group">
+                    <label for="telegram_id">Telegram ID *</label>
+                    <input type="text" id="telegram_id" name="telegram_id" required>
+                </div>
+                <div class="form-group">
+                    <label for="username">שם משתמש בטלגרם (username)</label>
+                    <input type="text" id="username" name="username">
+                </div>
+                <div class="form-group">
+                    <label for="first_name">שם פרטי</label>
+                    <input type="text" id="first_name" name="first_name">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">שם משפחה</label>
+                    <input type="text" id="last_name" name="last_name">
+                </div>
+            </div>
 
-    <label>שם משתמש בטלגרם (username)</label>
-    <input id="username" placeholder="@YourUsername" />
+            <div class="section">
+                <h2>💰 כתובות ארנק</h2>
+                <button type="button" id="connectMetamask" class="metamask-btn">🔗 חבר MetaMask</button>
+                
+                <div class="form-group">
+                    <label for="bnb_address">BNB Address (BEP20)</label>
+                    <input type="text" id="bnb_address" name="bnb_address" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label for="slh_address">SLH Address (אם שונה)</label>
+                    <input type="text" id="slh_address" name="slh_address" placeholder="0x...">
+                </div>
+            </div>
 
-    <label>שם פרטי</label>
-    <input id="first_name" placeholder="השם שלך" />
+            <div class="section bank-section">
+                <h2>🏦 פרטי בנק להעברות</h2>
+                <div class="form-group">
+                    <label for="bank_name">שם הבנק</label>
+                    <input type="text" id="bank_name" name="bank_name">
+                </div>
+                <div class="form-group">
+                    <label for="bank_branch">סניף</label>
+                    <input type="text" id="bank_branch" name="bank_branch">
+                </div>
+                <div class="form-group">
+                    <label for="bank_account_number">מספר חשבון</label>
+                    <input type="text" id="bank_account_number" name="bank_account_number">
+                </div>
+            </div>
 
-    <label>BNB Address (BEP20)</label>
-    <input id="bnb_address" placeholder="0x..." />
+            <button type="submit">💾 שמירת ארנק</button>
+        </form>
 
-    <label>SLH Address (אם שונה)</label>
-    <input id="slh_address" placeholder="0x... או השאר ריק" />
+        <div class="section" style="margin-top: 2rem;">
+            <h2>📤 העלאת אישור העברה</h2>
+            <form id="transferProofForm">
+                <div class="form-group">
+                    <label for="proof_telegram_id">Telegram ID *</label>
+                    <input type="text" id="proof_telegram_id" name="telegram_id" required>
+                </div>
+                <div class="form-group">
+                    <label for="proof_description">תיאור ההעברה</label>
+                    <input type="text" id="proof_description" name="description" placeholder="למשל: העברה עבור רכישת SLH">
+                </div>
+                <div class="form-group">
+                    <label for="proof_file">קובץ אישור העברה *</label>
+                    <input type="file" id="proof_file" name="file" accept="image/*,.pdf" required>
+                </div>
+                <button type="submit">📎 העלאה לאישור</button>
+            </form>
+        </div>
+    </div>
 
-    <button class="btn" onclick="saveWallet()">שמירת ארנק</button>
-
-    <div class="status" id="status"></div>
-
-    <small>
-      מומלץ להגיע לכאן דרך פקודת /wallet בבוט – כך השדות מתמלאים אוטומטית.
-    </small>
-  </div>
-
-  <script>
-    const apiBase = window.location.origin;
-
-    function getQueryParam(name) {
-      const url = new URL(window.location.href);
-      return url.searchParams.get(name) || "";
-    }
-
-    document.getElementById("telegram_id").value = getQueryParam("telegram_id");
-    document.getElementById("username").value = getQueryParam("username");
-    document.getElementById("first_name").value = getQueryParam("first_name");
-
-    async function saveWallet() {
-      const statusEl = document.getElementById("status");
-      statusEl.textContent = "שומר...";
-      statusEl.className = "status";
-
-      const payload = {
-        telegram_id: document.getElementById("telegram_id").value.trim(),
-        username: document.getElementById("username").value.trim() || null,
-        first_name: document.getElementById("first_name").value.trim() || null,
-        bnb_address: document.getElementById("bnb_address").value.trim() || null,
-        slh_address: document.getElementById("slh_address").value.trim() || null,
-      };
-
-      if (!payload.telegram_id) {
-        statusEl.textContent = "חסר Telegram ID";
-        statusEl.className = "status err";
-        return;
-      }
-
-      try {
-        const resp = await fetch(apiBase + "/api/wallet/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+    <script>
+        // ✅ אינטגרציה עם MetaMask
+        document.getElementById('connectMetamask').addEventListener('click', async function() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
+                    });
+                    
+                    if (accounts.length > 0) {
+                        const account = accounts[0];
+                        document.getElementById('bnb_address').value = account;
+                        document.getElementById('slh_address').value = account;
+                        showMessage('✅ MetaMask מחובר בהצלחה! הכתובת מולאה אוטומטית.', 'success');
+                    }
+                } catch (error) {
+                    showMessage('❌ משתמש דחה את הבקשה לחיבור MetaMask', 'error');
+                }
+            } else {
+                showMessage('❌ MetaMask לא מותקן בדפדפן שלך', 'error');
+            }
         });
 
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          throw new Error(err.detail || "שגיאה בשמירת הארנק");
+        // ✅ שליחת טופס הארנק
+        document.getElementById('walletForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch('/api/wallet/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    showMessage('✅ הארנק נשמר בהצלחה!', 'success');
+                } else {
+                    const error = await response.json();
+                    showMessage('❌ שגיאה בשמירת הארנק: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ שגיאת רשת: ' + error.message, 'error');
+            }
+        });
+
+        // ✅ שליחת טופס אישור העברה
+        document.getElementById('transferProofForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/api/wallet/upload-transfer-proof', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showMessage('✅ הקובץ הועלה בהצלחה וממתין לאישור!', 'success');
+                    this.reset();
+                } else {
+                    const error = await response.json();
+                    showMessage('❌ שגיאה בהעלאת הקובץ: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ שגיאת רשת: ' + error.message, 'error');
+            }
+        });
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = type === 'success' ? 'green' : 'red';
+            messageDiv.style.padding = '1rem';
+            messageDiv.style.margin = '1rem 0';
+            messageDiv.style.borderRadius = '4px';
+            messageDiv.style.backgroundColor = type === 'success' ? '#f0fff0' : '#fff0f0';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
         }
 
-        await resp.json();
-        statusEl.textContent = "הארנק נשמר בהצלחה ✅";
-        statusEl.className = "status ok";
-      } catch (e) {
-        statusEl.textContent = e.message || "שגיאה לא צפויה";
-        statusEl.className = "status err";
-      }
-    }
-  </script>
+        // ✅ מילוי אוטומטי של פרטים מ-URL parameters
+        function fillFromUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            document.getElementById('telegram_id').value = urlParams.get('telegram_id') || '';
+            document.getElementById('username').value = urlParams.get('username') || '';
+            document.getElementById('first_name').value = urlParams.get('first_name') || '';
+            document.getElementById('proof_telegram_id').value = urlParams.get('telegram_id') || '';
+        }
+
+        fillFromUrlParams();
+    </script>
 </body>
 </html>
