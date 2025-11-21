@@ -1,9 +1,7 @@
 import logging
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
-
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
@@ -42,18 +40,20 @@ async def on_startup():
     if settings.telegram_bot_token:
         try:
             await get_application()
-            logger.info("Telegram Application initialized")
+            logger.info("Telegram Application initialized successfully")
         except Exception as exc:
-            logger.error("Failed to init Telegram Bot: %s", exc)
+            logger.error("Failed to initialize Telegram Bot: %s", exc)
+            # Don't crash the entire app if bot fails
     else:
-        logger.warning("TELEGRAM_BOT_TOKEN is not set – bot is disabled")
+        logger.warning("TELEGRAM_BOT_TOKEN is not set - bot is disabled")
 
 
+# ✅ CORS מאובטח - רק דומיינים מורשים
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
     allow_credentials=True,
 )
 
@@ -92,6 +92,10 @@ async def api_meta():
         "has_bot_token": bool(settings.telegram_bot_token),
         "has_admin_log_chat": bool(settings.telegram_admin_chat_id),
         "db_url_prefix": settings.database_url.split(":", 1)[0],
+        "security": {
+            "cors_restricted": len(settings.allowed_origins) > 0 and "*" not in settings.allowed_origins,
+            "secret_key_configured": settings.secret_key != "change-me",
+        }
     }
 
 
