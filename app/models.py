@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 from .database import Base
 
+
 class Wallet(Base):
     __tablename__ = "wallets"
 
