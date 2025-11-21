@@ -12,6 +12,13 @@ def register_wallet(
     payload: schemas.WalletRegisterIn,
     db: Session = Depends(get_db),
 ):
+    # ✅ ולידציה נוספת - אורך כתובות
+    if payload.bnb_address and len(payload.bnb_address) > 200:
+        raise HTTPException(status_code=400, detail="BNB address too long")
+    
+    if payload.slh_address and len(payload.slh_address) > 200:
+        raise HTTPException(status_code=400, detail="SLH address too long")
+
     wallet = db.get(models.Wallet, payload.telegram_id)
 
     if not wallet:
@@ -37,7 +44,23 @@ def get_wallet_by_telegram(
     telegram_id: str,
     db: Session = Depends(get_db),
 ):
+    if not telegram_id or len(telegram_id) > 50:
+        raise HTTPException(status_code=400, detail="Invalid telegram ID")
+        
     wallet = db.get(models.Wallet, telegram_id)
     if not wallet:
         raise HTTPException(status_code=404, detail="User not found")
     return wallet
+
+
+@router.get("/exists/{telegram_id}")
+def check_wallet_exists(
+    telegram_id: str,
+    db: Session = Depends(get_db),
+):
+    """✅ endpoint נוסף לבדיקה אם משתמש רשום"""
+    if not telegram_id or len(telegram_id) > 50:
+        return {"exists": False}
+        
+    wallet = db.get(models.Wallet, telegram_id)
+    return {"exists": wallet is not None}
