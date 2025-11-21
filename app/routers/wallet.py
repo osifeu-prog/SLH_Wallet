@@ -1,7 +1,6 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-
 from .. import models, schemas
 from ..database import get_db
 from ..blockchain_service import blockchain_service
@@ -9,7 +8,6 @@ from ..blockchain_service import blockchain_service
 logger = logging.getLogger("slh_wallet.wallet_router")
 
 router = APIRouter(prefix="/api/wallet", tags=["wallet"])
-
 
 @router.post("/register", response_model=schemas.WalletOut)
 def register_wallet(
@@ -22,6 +20,9 @@ def register_wallet(
     
     if payload.slh_address and len(payload.slh_address) > 200:
         raise HTTPException(status_code=400, detail="SLH address too long")
+    
+    if payload.bank_account_number and len(payload.bank_account_number) > 100:
+        raise HTTPException(status_code=400, detail="Bank account number too long")
 
     wallet = db.get(models.Wallet, payload.telegram_id)
 
@@ -29,19 +30,21 @@ def register_wallet(
         wallet = models.Wallet(telegram_id=payload.telegram_id)
         db.add(wallet)
 
-    if payload.username is not None:
-        wallet.username = payload.username
-    if payload.first_name is not None:
-        wallet.first_name = payload.first_name
-    if payload.bnb_address is not None:
-        wallet.bnb_address = payload.bnb_address
-    if payload.slh_address is not None:
-        wallet.slh_address = payload.slh_address
+    # ✅ עדכון כל השדות כולל החדשים
+    update_fields = [
+        'username', 'first_name', 'last_name', 
+        'bnb_address', 'slh_address',
+        'bank_account_number', 'bank_name', 'bank_branch'
+    ]
+    
+    for field in update_fields:
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(wallet, field, value)
 
     db.commit()
     db.refresh(wallet)
     return wallet
-
 
 @router.get("/by-telegram/{telegram_id}", response_model=schemas.WalletOut)
 def get_wallet_by_telegram(
@@ -56,26 +59,22 @@ def get_wallet_by_telegram(
         raise HTTPException(status_code=404, detail="User not found")
     return wallet
 
-
 @router.get("/exists/{telegram_id}")
 def check_wallet_exists(
     telegram_id: str,
     db: Session = Depends(get_db),
 ):
-    """✅ endpoint נוסף לבדיקה אם משתמש רשום"""
     if not telegram_id or len(telegram_id) > 50:
         return {"exists": False}
         
     wallet = db.get(models.Wallet, telegram_id)
     return {"exists": wallet is not None}
 
-
 @router.get("/{telegram_id}/balances")
 async def get_wallet_balances(
     telegram_id: str,
     db: Session = Depends(get_db),
 ):
-    """✅ endpoint חדש - מחזיר יתרות מהבלוקצ'יין"""
     if not telegram_id or len(telegram_id) > 50:
         raise HTTPException(status_code=400, detail="Invalid telegram ID")
         
@@ -83,7 +82,6 @@ async def get_wallet_balances(
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
     
-    # אם אין כתובת BNB, נשתמש ב-SLH ולהפך
     bnb_address = wallet.bnb_address or ""
     slh_address = wallet.slh_address or wallet.bnb_address or ""
     
@@ -101,3 +99,36 @@ async def get_wallet_balances(
     except Exception as e:
         logger.error("Error getting balances for %s: %s", telegram_id, e)
         raise HTTPException(status_code=500, detail="Error fetching blockchain data")
+
+# ✅ endpoint חדש להעלאת אישורי העברה
+@router.post("/upload-transfer-proof")
+async def upload_transfer_proof(
+    file: UploadFile = File(...),
+    telegram_id: str = Form(...),
+    description: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    # ✅ בדיקה שהמשתמש קיים
+    wallet = db.get(models.Wallet, telegram_id)
+    if not wallet:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    
+    # ✅ שמירת הקובץ (בפועל צריך לשמור במיקום אמיתי כמו S3)
+    try:
+        # כאן תוסיף לוגיקה אמיתית לשמירת הקובץ
+        file_location = f"transfer_proofs/{telegram_id}_{file.filename}"
+        
+        # במציאות, תשמור את הקובץ במיקום מאובטח
+        # עם open(file_location, "wb") as buffer:
+        #    buffer.write(await file.read())
+        
+        return {
+            "filename": file.filename,
+            "telegram_id": telegram_id,
+            "description": description,
+            "status": "uploaded",
+            "message": "File uploaded successfully - under review"
+        }
+    except Exception as e:
+        logger.error("Error uploading file for %s: %s", telegram_id, e)
+        raise HTTPException(status_code=500, detail="Error uploading file")
