@@ -1,219 +1,102 @@
-from __future__ import annotations
-
 import json
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from telegram import Update, User as TgUser
-from telegram.ext import Application, ApplicationBuilder, CommandHandler, ContextTypes
+from fastapi import APIRouter, HTTPException, Request
+from telegram import Update
+from telegram.ext import (
+    Application,
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+)
 
-from .config import get_settings
-from .database import SessionLocal
-from .logging_utils import log_event
-from .models import User, Wallet
+from .config import settings
 
-logger = logging.getLogger("slh_wallet.telegram")
+logger = logging.getLogger("slh_wallet.bot")
 
-router = APIRouter()
-settings = get_settings()
+router = APIRouter(tags=["telegram"])
 
-
-class TelegramUpdate(BaseModel):
-    update_id: Optional[int] = None
+_application: Optional[Application] = None
 
 
-_bot_app: Optional[Application] = None
+async def _build_application() -> Application:
+    if not settings.telegram_bot_token:
+        raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured")
 
-
-async def get_bot_application() -> Application:
-    """
-    Lazily create and cache the python-telegram-bot Application used for webhook processing.
-    """
-    global _bot_app
-    if _bot_app is None:
-        if not settings.TELEGRAM_BOT_TOKEN:
-            raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured")
-
-        _bot_app = (
-            ApplicationBuilder()
-            .token(settings.TELEGRAM_BOT_TOKEN)
-            .concurrent_updates(True)
-            .build()
-        )
-
-        _bot_app.add_handler(CommandHandler("start", handle_start))
-        _bot_app.add_handler(CommandHandler("wallet", handle_wallet))
-
-        await log_event("BOT", "Telegram Application instance created and handlers registered")
-
-    return _bot_app
-
-
-def _get_frontend_base_url() -> str:
-    """
-    Prefer FRONTEND_API_BASE, fall back to BASE_URL if needed.
-    """
-    base = settings.FRONTEND_API_BASE or settings.BASE_URL or ""
-    return base.rstrip("/")
-
-
-async def ensure_wallet_for_telegram_user(tg_user: TgUser) -> None:
-    """
-    Ensure that a User + Wallet row exist for the given Telegram user.
-    If they already exist, their username/first_name are kept in sync.
-    """
-    db = SessionLocal()
-    telegram_id = str(tg_user.id)
-    username = tg_user.username
-    first_name = tg_user.first_name
-
-    try:
-        user = db.query(User).filter(User.telegram_id == telegram_id).first()
-        created_user = False
-        if user is None:
-            user = User(
-                telegram_id=telegram_id,
-                username=username,
-                first_name=first_name,
-            )
-            db.add(user)
-            created_user = True
-
-        # Ensure we have a primary key for the user
-        db.flush()
-
-        changed = False
-        if username and user.username != username:
-            user.username = username
-            changed = True
-        if first_name and user.first_name != first_name:
-            user.first_name = first_name
-            changed = True
-
-        wallet = (
-            db.query(Wallet)
-            .filter(Wallet.user_id == user.id)
-            .order_by(Wallet.id.asc())
-            .first()
-        )
-
-        created_wallet = False
-        if wallet is None:
-            wallet = Wallet(
-                user_id=user.id,
-                bnb_address=None,
-                slh_address=None,
-            )
-            db.add(wallet)
-            created_wallet = True
-
-        db.commit()
-
-        if created_user:
-            await log_event("WALLET", f"Created User for telegram_id={telegram_id}")
-        if created_wallet:
-            await log_event("WALLET", f"Created Wallet for telegram_id={telegram_id}")
-        if changed and not created_user:
-            await log_event("WALLET", f"Updated profile for telegram_id={telegram_id}")
-
-    except Exception as exc:  # noqa: BLE001
-        db.rollback()
-        logger.exception("ensure_wallet_for_telegram_user failed: %s", exc)
-        await log_event("ERROR", f"ensure_wallet_for_telegram_user failed: {exc}")
-    finally:
-        db.close()
-
-
-async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    tg_user = update.effective_user
-    chat = update.effective_chat
-
-    if not tg_user or not chat:
-        return
-
-    await log_event(
-        "BOT",
-        f"/start from @{tg_user.username}({tg_user.id})"
+    app = (
+        ApplicationBuilder()
+        .token(settings.telegram_bot_token)
+        .concurrent_updates(True)
+        .build()
     )
 
-    # Auto-create / sync wallet for this Telegram user
-    await ensure_wallet_for_telegram_user(tg_user)
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("wallet", cmd_wallet))
 
-    frontend_base = _get_frontend_base_url()
-    wallet_url = f"{frontend_base}/#wallet" if frontend_base else "#wallet"
-    landing_url = frontend_base or "/"
-    community = settings.COMMUNITY_LINK or ""
-
-    text_lines = [
-        f"שלום @{tg_user.username or tg_user.first_name}! 🌐",
-        "",
-        "ברוך הבא ל-SLH Wallet 2.0.",
-        "",
-        "כאן נרכז בהמשך:",
-        "• ארנק BNB/SLH אישי",
-        "• כתובת SLH מזוהה למערכת",
-        "• חיבור לכלי המסחר והקהילה.",
-        "",
-        "פתיחת ארנק / התחברות:",
-        f"➡️ {landing_url}",
-    ]
-
-    if community:
-        text_lines.append(f"לקבוצת הקהילה: {community}")
-
-    text = "\n".join(text_lines)
-
-    await context.bot.send_message(chat_id=chat.id, text=text)
+    return app
 
 
-async def handle_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    tg_user = update.effective_user
-    chat = update.effective_chat
+async def get_application() -> Application:
+    global _application
+    if _application is None:
+        _application = await _build_application()
+        await _application.initialize()
+    return _application
 
-    if not tg_user or not chat:
-        return
 
-    await log_event(
-        "BOT",
-        f"/wallet from @{tg_user.username}({tg_user.id})"
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    logger.info("BOT /start from @%s(%s)", user.username, user.id)
+
+    base = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
+
+    text = (
+        f"שלום @{user.username or user.id}! 🌐\n\n"
+        "ברוך הבא ל-SLH Wallet 2.0.\n\n"
+        "כאן נרכז בהמשך:\n"
+        "• ארנק BNB/SLH אישי\n"
+        "• כתובת SLH מזוהה למערכת\n"
+        "• חיבור לכלי המסחר והקהילה.\n\n"
+        "פתיחת ארנק / עדכון פרטים:\n"
+        f"➡️ {base}/wallet\n"
+        f"לקבוצת הקהילה: {settings.community_link}"
     )
 
-    # Auto-create / sync wallet for this Telegram user
-    await ensure_wallet_for_telegram_user(tg_user)
-
-    frontend_base = _get_frontend_base_url()
-    wallet_url = f"{frontend_base}/#wallet" if frontend_base else "#wallet"
-
-    lines = [
-        "להגדרת ארנק / עדכון פרטים:",
-        f"➡️ {wallet_url}",
-    ]
-
-    await context.bot.send_message(chat_id=chat.id, text="\n".join(lines))
+    await update.effective_chat.send_message(text)
 
 
-@router.post("/telegram/webhook", response_class=JSONResponse)
-async def telegram_webhook(request: Request) -> JSONResponse:
-    # Telegram always sends JSON; if this endpoint is hit manually without a body,
-    # avoid raising JSONDecodeError.
-    raw_body = await request.body()
-    if not raw_body:
+async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    logger.info("BOT /wallet from @%s(%s)", user.username, user.id)
+
+    base = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
+    url = (
+        f"{base}/wallet"
+        f"?telegram_id={user.id}"
+        f"&username={user.username or ''}"
+        f"&first_name={user.first_name or ''}"
+    )
+
+    text = "להגדרת ארנק / עדכון פרטים:\n" f"➡️ {url}"
+
+    await update.effective_chat.send_message(text)
+
+
+@router.post("/telegram/webhook")
+async def telegram_webhook(
+    request: Request,
+) -> dict:
+    body = await request.body()
+    if not body:
         raise HTTPException(status_code=400, detail="Empty body")
 
     try:
-        data = json.loads(raw_body.decode("utf-8"))
-    except json.JSONDecodeError as exc:  # noqa: B902
-        logger.warning("Failed to decode Telegram update JSON: %s", exc)
-        raise HTTPException(status_code=400, detail="Invalid JSON body") from exc
+        data = json.loads(body.decode("utf-8"))
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    app = await get_bot_application()
+    app = await get_application()
     update = Update.de_json(data, app.bot)
-
     await app.process_update(update)
-
-    await log_event("WEB", "POST /telegram/webhook -> 200 (update processed)")
-
-    return JSONResponse({"ok": True})
+    return {"ok": True}

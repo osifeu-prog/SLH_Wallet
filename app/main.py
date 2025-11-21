@@ -1,19 +1,30 @@
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
-from pathlib import Path
 
-from .config import get_settings
+from .config import settings
 from .database import Base, engine
-from .logging_utils import logger
-from . import router_wallet, router_trade, telegram_bot
+from .routers import wallet, trade
+from .telegram_bot import router as telegram_router, get_application
 
-settings = get_settings()
+logger = logging.getLogger("slh_wallet")
 
-# Create DB tables
-Base.metadata.create_all(bind=engine)
+
+def setup_logging():
+    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+
+def init_db():
+    Base.metadata.create_all(bind=engine)
+
 
 app = FastAPI(
     title="SLH_Wallet_2.0",
@@ -21,29 +32,38 @@ app = FastAPI(
     description="Unified SLH Wallet (BNB/SLH) + Bot API",
 )
 
-# CORS
+
+@app.on_event("startup")
+async def on_startup():
+    setup_logging()
+    init_db()
+    logger.info("=== Startup SLH_Wallet_2.0 ===")
+
+    if settings.telegram_bot_token:
+        try:
+            await get_application()
+            logger.info("Telegram Application initialized")
+        except Exception as exc:
+            logger.error("Failed to init Telegram Bot: %s", exc)
+    else:
+        logger.warning("TELEGRAM_BOT_TOKEN is not set – bot is disabled")
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # אפשר להקשיח בהמשך
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
-
-# Static / frontend
-BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR.parent / "frontend"
-
-if FRONTEND_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    resp = await call_next(request)
-    path = request.url.path
-    logger.info("[WEB] %s %s -> %s", request.method, path, resp.status_code)
-    return resp
+    logger.info("[WEB] %s %s", request.method, request.url.path)
+    response = await call_next(request)
+    logger.info("[WEB] %s %s -> %s", request.method, request.url.path, response.status_code)
+    return response
 
 
 @app.get("/health")
@@ -53,36 +73,45 @@ async def health():
 
 @app.get("/")
 async def index():
-    meta = {
+    meta = settings.as_meta()
+    return {
         "status": "ok",
-        "name": "SLH_Wallet_2.0",
-        "env": settings.ENV,
-        "base_url": settings.BASE_URL,
-        "bot_url": settings.FRONTEND_BOT_URL,
-        "community": settings.COMMUNITY_LINK,
+        "name": meta["service"],
+        "env": meta["env"],
+        "base_url": meta["base_url"],
+        "bot_url": meta["bot_url"],
+        "community": meta["community"],
     }
-    # אם יש index.html בפרונטנד – נחזיר אותו
-    index_file = FRONTEND_DIR / "index.html"
-    if index_file.exists():
-        return FileResponse(str(index_file))
-    return JSONResponse(meta)
 
 
 @app.get("/api/meta")
 async def api_meta():
+    meta = settings.as_meta()
     return {
-        "service": "SLH_Wallet_2.0",
-        "env": settings.ENV,
-        "base_url": settings.BASE_URL,
-        "bot_url": settings.FRONTEND_BOT_URL,
-        "community": settings.COMMUNITY_LINK,
-        "has_bot_token": bool(settings.TELEGRAM_BOT_TOKEN),
-        "has_admin_log_chat": bool(settings.ADMIN_LOG_CHAT_ID),
-        "db_url_prefix": (settings.DATABASE_URL or "sqlite").split(":", 1)[0],
+        **meta,
+        "has_bot_token": bool(settings.telegram_bot_token),
+        "has_admin_log_chat": bool(settings.telegram_admin_chat_id),
+        "db_url_prefix": settings.database_url.split(":", 1)[0],
     }
 
 
-# Routers
-app.include_router(router_wallet.router)
-app.include_router(router_trade.router)
-app.include_router(telegram_bot.router)
+app.mount(
+    "/static",
+    StaticFiles(directory="frontend"),
+    name="static",
+)
+
+
+@app.get("/wallet", response_class=HTMLResponse)
+async def wallet_page():
+    return FileResponse("frontend/wallet.html")
+
+
+@app.get("/landing", response_class=HTMLResponse)
+async def landing_page():
+    return FileResponse("frontend/index.html")
+
+
+app.include_router(wallet.router)
+app.include_router(trade.router)
+app.include_router(telegram_router)

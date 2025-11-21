@@ -1,23 +1,28 @@
-
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from .config import get_settings
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-settings = get_settings()
+from .config import settings
 
-if settings.DATABASE_URL:
-    engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
-else:
-    # Fallback to local SQLite if no DATABASE_URL is provided
-    engine = create_engine("sqlite:///./slh_wallet.db", connect_args={"check_same_thread": False})
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+class Base(DeclarativeBase):
+    pass
 
-Base = declarative_base()
+
+engine = create_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+)
 
 
 def get_db():
     from sqlalchemy.orm import Session
+
     db: Session = SessionLocal()
     try:
         yield db

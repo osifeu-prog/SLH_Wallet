@@ -1,90 +1,72 @@
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <title>SLH Wallet 2.0</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050816;
+      color: #f9fafb;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #111827;
+      padding: 2rem;
+      border-radius: 1rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .btn {
+      display: inline-block;
+      background: #22c55e;
+      color: #022c22;
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 1.5rem;
+    }
+    .btn:hover {
+      filter: brightness(1.05);
+    }
+    a.link {
+      color: #38bdf8;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
-  <header>
+  <div class="card">
     <h1>SLH Wallet 2.0</h1>
-    <p>ארנק BNB/SLH מחובר לטלגרם ו-API</p>
-    <nav>
-      <a href="#wallet">ארנק</a>
-      <a href="#trade">מסחר</a>
-      <a href="#api">API</a>
-    </nav>
-  </header>
-
-  <main>
-    <section id="wallet">
-      <h2>ארנק משתמש</h2>
-      <form id="wallet-form">
-        <label>
-          Telegram ID:
-          <input type="text" id="telegram_id" required />
-        </label>
-        <label>
-          שם משתמש:
-          <input type="text" id="username" />
-        </label>
-        <label>
-          שם פרטי:
-          <input type="text" id="first_name" />
-        </label>
-        <label>
-          BNB Address:
-          <input type="text" id="bnb_address" />
-        </label>
-        <label>
-          SLH Address:
-          <input type="text" id="slh_address" />
-        </label>
-        <button type="submit">שמור ארנק</button>
-      </form>
-      <pre id="wallet-result"></pre>
-    </section>
-
-    <section id="trade">
-      <h2>מסחר (Demo)</h2>
-      <form id="trade-form">
-        <label>
-          Telegram ID:
-          <input type="text" id="trade_telegram_id" required />
-        </label>
-        <label>
-          Token Symbol:
-          <input type="text" id="token_symbol" value="SLH" />
-        </label>
-        <label>
-          Amount:
-          <input type="number" step="0.00000001" id="amount" />
-        </label>
-        <label>
-          Price (BNB):
-          <input type="number" step="0.00000001" id="price_bnb" />
-        </label>
-        <button type="submit">צור הצעה</button>
-      </form>
-      <button id="load-offers">טען הצעות פעילות</button>
-      <pre id="trade-result"></pre>
-    </section>
-
-    <section id="api">
-      <h2>API / בדיקות</h2>
-      <p>
-        מסמכי API זמינים ב- <a href="/docs" target="_blank">/docs</a>.
-      </p>
-      <p id="meta-info">טוען מידע שירות...</p>
-    </section>
-  </main>
-
-  <footer>
-    <p>SLHNET &copy; 2025</p>
-  </footer>
-
-  <script src="/static/js/app.js"></script>
+    <p>
+      ארנק BNB/SLH מחובר לבוט טלגרם ולקהילת SLHNET.
+    </p>
+    <p>
+      כדי להגדיר ארנק אישי – התחבר דרך הבוט:
+    </p>
+    <p>
+      <a class="btn" href="https://t.me/Slh_selha_bot" target="_blank">פתיחת בוט SLH Wallet</a>
+    </p>
+    <p>
+      או גש ישירות למסך הגדרת הארנק:
+      <br />
+      <a class="link" href="/wallet">/wallet</a>
+    </p>
+    <p>
+      קהילת העסקים:
+      <br />
+      <a class="link" href="https://t.me/+HIzvM8sEgh1kNWY0" target="_blank">
+        הצטרפות לקהילה
+      </a>
+    </p>
+  </div>
 </body>
 </html>

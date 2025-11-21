@@ -1,11 +1,11 @@
-
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 
 class WalletRegisterIn(BaseModel):
-    telegram_id: str
+    telegram_id: str = Field(..., description="Telegram user id")
     username: Optional[str] = None
     first_name: Optional[str] = None
     bnb_address: Optional[str] = None
@@ -22,7 +22,7 @@ class WalletOut(BaseModel):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TradeOfferOut(BaseModel):
@@ -34,4 +34,4 @@ class TradeOfferOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True

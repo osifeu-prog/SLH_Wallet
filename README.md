@@ -1,55 +1,33 @@
-
 # SLH_Wallet_2.0
 
-Unified SLH Wallet (BNB/SLH) + Telegram Bot + Web Dashboard.
+Unified backend + Telegram bot + minimal frontend for SLH Wallet on BNB/SLH.
 
 ## Structure
 
-- `backend/` – FastAPI app (exposed as `app.main:app`)
-- `frontend/` – Static landing + wallet/trade UI
-- `start.sh` – Entry script for Koyeb/Render/Docker
+- `app/` – FastAPI backend, database models, Telegram webhook
+- `frontend/` – Static pages (`/landing`, `/wallet`)
+- `start.sh` – entrypoint (used by Koyeb)
 - `requirements.txt` – Python dependencies
 
-## Run locally
+## Run locally (dev)
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-export ENV=development
-export BASE_URL=http://127.0.0.1:8000
-uvicorn app.main:app --reload --app-dir backend
+export TELEGRAM_BOT_TOKEN="your-bot-token"
+export BOT_USERNAME="Slh_selha_bot"
+export COMMUNITY_LINK="https://t.me/+HIzvM8sEgh1kNWY0"
+# optional DB:
+# export DATABASE_URL="postgresql://user:pass@host:port/dbname"
+
+bash start.sh
 ```
 
-Then open: http://127.0.0.1:8000/
+Then open:
 
-## Deploy on Koyeb
-
-- Connect this repo
-- Buildpack
-- Run command: `bash start.sh`
-- Expose port 8000
-
-### Required env vars (Koyeb Secrets)
-
-- `ENV=production`
-- `BASE_URL=https://YOUR-KOYEB-APP.koyeb.app`
-- `SECRET_KEY=some-long-random`
-- `DATABASE_URL=postgresql://...` (Neon/Supabase/etc). If omitted -> sqlite file.
-- `BSC_RPC_URL=https://bsc-dataseed.binance.org/`
-- `TELEGRAM_BOT_TOKEN=...`
-- `ADMIN_LOG_CHAT_ID=-100...` (Telegram group/channel id for logs)
-- `FRONTEND_BOT_URL=https://t.me/YourBot`
-- `COMMUNITY_LINK=https://t.me/YourCommunity`
-
-## API
-
-- `GET /health`
-- `GET /` – landing or JSON meta
-- `GET /api/meta`
-- `POST /api/wallet/register`
-- `GET /api/wallet/by-telegram/{telegram_id}`
-- `GET /api/trade/offers`
-- `POST /api/trade/create-offer`
-- `POST /telegram/webhook` – Telegram webhook endpoint
+- `http://localhost:8000/health`
+- `http://localhost:8000/docs`
+- `http://localhost:8000/wallet`
+```

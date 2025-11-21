@@ -1,35 +1,61 @@
-
 import os
-from functools import lru_cache
-from pydantic import BaseModel
+import json
+from typing import List, Optional
 
 
-class Settings(BaseModel):
-    ENV: str = os.getenv("ENV", "production")
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+class Settings:
+    def __init__(self) -> None:
+        self.env: str = os.getenv("ENV", "production")
+        self.secret_key: str = os.getenv("SECRET_KEY", "change-me")
 
-    # Core service
-    BASE_URL: str = os.getenv("BASE_URL", "").rstrip("/") or ""
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "change-me")
+        self.database_url: str = os.getenv(
+            "DATABASE_URL",
+            "sqlite:///./slh_wallet.db",
+        )
 
-    # Database
-    DATABASE_URL: str | None = os.getenv("DATABASE_URL")
+        self.telegram_bot_token: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+        self.telegram_admin_chat_id: Optional[int] = None
+        chat_id_raw = os.getenv("TELEGRAM_CHAT_ID")
+        if chat_id_raw:
+            try:
+                self.telegram_admin_chat_id = int(chat_id_raw)
+            except ValueError:
+                self.telegram_admin_chat_id = None
 
-    # Blockchain
-    BSC_RPC_URL: str = os.getenv("BSC_RPC_URL", "https://bsc-dataseed.binance.org/")
+        self.bot_username: Optional[str] = os.getenv("BOT_USERNAME")
 
-    # Telegram
-    TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
-    ADMIN_LOG_CHAT_ID: int | None = (
-        int(os.getenv("ADMIN_LOG_CHAT_ID")) if os.getenv("ADMIN_LOG_CHAT_ID") else None
-    )
-    ADMIN_USERNAMES: str | None = os.getenv("ADMIN_USERNAMES")
+        self.frontend_base_url: Optional[str] = os.getenv(
+            "FRONTEND_API_BASE",
+        )
 
-    # Frontend/meta
-    FRONTEND_BOT_URL: str | None = os.getenv("FRONTEND_BOT_URL")
-    COMMUNITY_LINK: str | None = os.getenv("COMMUNITY_LINK")
+        self.community_link: Optional[str] = os.getenv(
+            "COMMUNITY_LINK",
+            "https://t.me/+HIzvM8sEgh1kNWY0",
+        )
+
+        self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
+
+        pm_raw = os.getenv(
+            "PAYMENT_METHODS",
+            '["BNB","SLH","CREDIT_CARD","BANK_TRANSFER"]',
+        )
+        try:
+            self.payment_methods: List[str] = list(json.loads(pm_raw))
+        except Exception:
+            self.payment_methods = ["BNB", "SLH"]
+
+    @property
+    def base_url(self) -> str:
+        return self.frontend_base_url or ""
+
+    def as_meta(self) -> dict:
+        return {
+            "service": "SLH_Wallet_2.0",
+            "env": self.env,
+            "base_url": self.base_url,
+            "bot_url": f"https://t.me/{self.bot_username}" if self.bot_username else None,
+            "community": self.community_link,
+        }
 
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+settings = Settings()
