@@ -1,7 +1,9 @@
+
 import json
 import logging
-import aiohttp
 from typing import Optional
+
+import aiohttp
 from fastapi import APIRouter, HTTPException, Request
 from telegram import Update
 from telegram.ext import (
@@ -15,7 +17,7 @@ from .config import settings
 
 logger = logging.getLogger("slh_wallet.bot")
 
-router = APIRouter(tags=["telegram"])
+router = APIRouter()
 
 _application: Optional[Application] = None
 
@@ -24,181 +26,158 @@ async def _build_application() -> Application:
     if not settings.telegram_bot_token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured")
 
-    try:
-        app = (
-            ApplicationBuilder()
-            .token(settings.telegram_bot_token)
-            .concurrent_updates(True)
-            .build()
-        )
+    app = (
+        ApplicationBuilder()
+        .token(settings.telegram_bot_token)
+        .concurrent_updates(True)
+        .build()
+    )
 
-        app.add_handler(CommandHandler("start", cmd_start))
-        app.add_handler(CommandHandler("wallet", cmd_wallet))
-        app.add_handler(CommandHandler("balances", cmd_balances))
-        app.add_handler(CommandHandler("bank", cmd_bank))
-        
-        return app
-    except Exception as e:
-        logger.error("Failed to build Telegram application: %s", e)
-        raise
+    # Handlers
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("wallet", cmd_wallet))
+    app.add_handler(CommandHandler("bank", cmd_bank))
+    app.add_handler(CommandHandler("balances", cmd_balances))
+
+    return app
 
 
 async def get_application() -> Application:
     global _application
     if _application is None:
         _application = await _build_application()
-        await _application.initialize()
+        logger.info("Telegram Application initialized successfully")
     return _application
 
 
+# -------- Bot command handlers --------
+
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
-        user = update.effective_user
-        if not user:
-            return
-            
-        logger.info("BOT /start from @%s(%s)", user.username, user.id)
+    user = update.effective_user
+    if not user or not update.message:
+        return
 
-        base = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
+    telegram_id = user.id
+    username = f"@{user.username}" if user.username else user.full_name
 
-        text = (
-            f"שלום @{user.username or user.id}! 🌐\n\n"
-            "ברוך הבא ל-SLH Wallet 2.0 - ארנק הקהילה המלא! 🚀\n\n"
-            "🪙 **פיצ'רים זמינים:**\n"
-            "• /wallet - ניהול כתובות ארנק ופרטים\n"
-            "• /balances - צפייה ביתרות\n"
-            "• /bank - הוספת פרטי בנק\n"
-            "• מסחר P2P (בקרוב)\n\n"
-            "פתיחת ארנק / עדכון פרטים:\n"
-            f"➡️ {base}/wallet\n"
-            f"לקבוצת הקהילה: {settings.community_link}"
-        )
+    text = (
+        "ברוך הבא ל-SLH Wallet 🚀\n\n"
+        "כאן אתה יכול לפתוח ארנק קהילתי, לראות יתרות BNB/SLH ולסחור עם חברי הקהילה.\n\n"
+        "פקודות זמינות:\n"
+        "/wallet - קישור לעמוד הארנק שלך\n"
+        "/balances - הצגת יתרות הארנק שלך\n"
+        "/bank - עדכון פרטי בנק לקבלת תשלומים\n"
+    )
 
-        await update.effective_chat.send_message(text)
-    except Exception as e:
-        logger.error("Error in /start command: %s", e)
+    await update.message.reply_text(text)
+    logger.info("BOT /start from %s(%s)", username, telegram_id)
 
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
-        user = update.effective_user
-        if not user:
-            return
-            
-        logger.info("BOT /wallet from @%s(%s)", user.username, user.id)
+    user = update.effective_user
+    if not user or not update.message:
+        return
 
-        base = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
-        url = (
-            f"{base}/wallet"
-            f"?telegram_id={user.id}"
-            f"&username={user.username or ''}"
-            f"&first_name={user.first_name or ''}"
-        )
+    telegram_id = user.id
+    username = f"@{user.username}" if user.username else user.full_name
 
-        text = (
-            "📲 **התחל כאן עם הארנק שלך:**\n\n"
-            "המערכת החדשה משתמשת ב-MetaMask שלך!\n\n"
-            "🦊 **איך זה עובד:**\n"
-            "1. לחץ על הקישור למטה\n"  
-            "2. חבר את MetaMask שלך\n"
-            "3. הכתובת שלך תיכנס אוטומטית\n"
-            "4. השלם את פרטי הטלגרם\n\n"
-            "🚀 **התחל כאן:**\n"
-            f"➡️ {url}\n\n"
-            "*אין צebab להזין כתובות ידנית - הכל אוטומטי!*"
-        )
+    base = settings.base_url or settings.frontend_api_base
+    base = base.rstrip("/")
+    url = f"{base}/wallet?telegram_id={telegram_id}"
 
-        await update.effective_chat.send_message(text, parse_mode='Markdown')
-    except Exception as e:
-        logger.error("Error in /wallet command: %s", e)
+    text = (
+        "הנה הקישור לעמוד הארנק שלך:\n"
+        f"{url}\n\n"
+        "שם תוכל לחבר MetaMask, לעדכן כתובות ופרטי בנק."
+    )
+    await update.message.reply_text(text)
+    logger.info("BOT /wallet from %s(%s)", username, telegram_id)
 
 
 async def cmd_bank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
-        user = update.effective_user
-        if not user:
-            return
+    user = update.effective_user
+    if not user or not update.message:
+        return
 
-        logger.info("BOT /bank from @%s(%s)", user.username, user.id)
+    telegram_id = user.id
+    username = f"@{user.username}" if user.username else user.full_name
 
-        base = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
-        url = f"{base}/wallet?telegram_id={user.id}"
+    base = settings.base_url or settings.frontend_api_base
+    base = base.rstrip("/")
+    url = f"{base}/wallet?telegram_id={telegram_id}#bank"
 
-        text = (
-            "🏦 **ניהול פרטי בנק:**\n\n"
-            "להוספת/עדכון פרטי בנק להעברות:\n"
-            f"➡️ {url}\n\n"
-            "**ניתן להוסיף:**\n"
-            "• שם הבנק וסניף\n"
-            "• מספר חשבון\n"
-            "• העלאת אישורי העברה\n\n"
-            "הפרטים ישמשו לקבלת תשלומים\n"
-            "בעבור המטבעות שלך."
-        )
-
-        await update.effective_chat.send_message(text)
-    except Exception as e:
-        logger.error("Error in /bank command: %s", e)
+    text = (
+        "לעדכון פרטי הבנק שלך לקבלת תשלומים, היכנס לעמוד הארנק:\n"
+        f"{url}"
+    )
+    await update.message.reply_text(text)
+    logger.info("BOT /bank from %s(%s)", username, telegram_id)
 
 
 async def cmd_balances(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    if not user or not update.message:
+        return
+
+    telegram_id = user.id
+    username = f"@{user.username}" if user.username else user.full_name
+
+    api_base = settings.frontend_api_base or settings.base_url
+    api_base = api_base.rstrip("/")
+    url = f"{api_base}/api/wallet/{telegram_id}/balances"
+
     try:
-        user = update.effective_user
-        if not user:
-            return
-
-        logger.info("BOT /balances from @%s(%s)", user.username, user.id)
-
-        base_url = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
-        api_url = f"{base_url}/api/wallet/{user.id}/balances"
-
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    
-                    if data.get('success', False):
-                        text = (
-                            "🏦 **יתרות הארנק שלך:**\n\n"
-                            f"💎 BNB: `{data['bnb_balance']:.6f}`\n"
-                            f"🪙 SLH: `{data['slh_balance']:.2f}`\n\n"
-                            f"📍 כתובת BNB: `{data['bnb_address']}`\n"
-                            f"📍 כתובת SLH: `{data['slh_address']}`"
-                        )
-                    else:
-                        text = (
-                            "❌ **לא נמצא ארנק**\n\n"
-                            "עליך לרשום ארנק תחילה:\n"
-                            "השתמש ב-/wallet כדי להירשם"
-                        )
-                else:
-                    text = (
-                        "❌ **לא נמצא ארנק**\n\n"
-                        "עליך לרשום ארנק תחילה:\n"
-                        "השתמש ב-/wallet כדי להירשם"
-                    )
-
-        await update.effective_chat.send_message(text, parse_mode='Markdown')
+            async with session.get(url, timeout=15) as resp:
+                if resp.status != 200:
+                    await update.message.reply_text("לא הצלחתי להביא את היתרות כרגע. נסה שוב מאוחר יותר.")
+                    logger.error("Balances HTTP %s for %s", resp.status, telegram_id)
+                    return
+                data = await resp.json()
     except Exception as e:
-        logger.error("Error in /balances command: %s", e)
-        await update.effective_chat.send_message("❌ אירעה שגיאה בשליפת היתרות. נסה שוב מאוחר יותר.")
+        logger.error("Error calling balances API for %s: %s", telegram_id, e)
+        await update.message.reply_text("אירעה שגיאה בזמן הבאת היתרות. נסה שוב מאוחר יותר.")
+        return
 
+    if not data.get("success", False):
+        await update.message.reply_text("לא קיימות כתובות רשומות לארנק שלך. היכנס קודם לעמוד הארנק באתר.")
+        return
+
+    bnb = data.get("bnb_balance", 0.0)
+    slh = data.get("slh_balance", 0.0)
+    bnb_address = data.get("bnb_address") or "לא מוגדר"
+    slh_address = data.get("slh_address") or "לא מוגדר"
+
+    text = (
+        "📊 יתרות הארנק שלך:\n"
+        f"BNB: {bnb:.6f}\n"
+        f"SLH: {slh:.6f}\n\n"
+        f"BNB address: {bnb_address}\n"
+        f"SLH address: {slh_address}"
+    )
+
+    await update.message.reply_text(text)
+    logger.info("BOT /balances from %s(%s)", username, telegram_id)
+
+
+# -------- FastAPI webhook --------
 
 @router.post("/telegram/webhook")
-async def telegram_webhook(
-    request: Request,
-) -> dict:
+async def telegram_webhook(request: Request):
+    """
+    נקודת כניסה לעדכוני Webhook מהבוט של טלגרם.
+    """
     try:
         body = await request.body()
         if not body:
             raise HTTPException(status_code=400, detail="Empty body")
 
         data = json.loads(body.decode("utf-8"))
-        
+
         app = await get_application()
         update = Update.de_json(data, app.bot)
         await app.process_update(update)
-        
+
         return {"ok": True}
     except json.JSONDecodeError:
         logger.error("Invalid JSON in webhook")

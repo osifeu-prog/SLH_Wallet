@@ -6,19 +6,25 @@ from .database import Base
 class Wallet(Base):
     __tablename__ = "wallets"
 
+    # מזהה ייחודי – Telegram ID
     telegram_id = Column(String, primary_key=True, index=True)
+
+    # פרטי משתמש
     username = Column(String, nullable=True, index=True)
     first_name = Column(String, nullable=True)
-    last_name = Column(String, nullable=True)  # ✅ שם משפחה חדש
+    last_name = Column(String, nullable=True)
 
+    # כתובות בלוקצ'יין
     bnb_address = Column(String, nullable=True)
     slh_address = Column(String, nullable=True)
-    
-    # ✅ פרטי בנק חדשים
+
+    # פרטי בנק
     bank_account_number = Column(String, nullable=True)
     bank_name = Column(String, nullable=True)
     bank_branch = Column(String, nullable=True)
+    bank_holder_name = Column(String, nullable=True)
 
+    # זמנים
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -27,9 +33,9 @@ class TradeOffer(Base):
     __tablename__ = "trade_offers"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    telegram_id = Column(String, index=True)
-    token_symbol = Column(String, nullable=False)
-    amount = Column(Float, nullable=False)
-    price_bnb = Column(Float, nullable=False)
+    telegram_id = Column(String, index=True)  # מי יצר את ההצעה
+    token_symbol = Column(String, nullable=False)  # לדוגמה: "SLH"
+    amount = Column(Float, nullable=False)  # כמה טוקנים נמכרים
+    price_bnb = Column(Float, nullable=False)  # מחיר ליחידה ב-BNB
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
