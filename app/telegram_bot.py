@@ -1,5 +1,6 @@
 import json
 import logging
+import aiohttp
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from telegram import Update
@@ -33,6 +34,7 @@ async def _build_application() -> Application:
 
         app.add_handler(CommandHandler("start", cmd_start))
         app.add_handler(CommandHandler("wallet", cmd_wallet))
+        app.add_handler(CommandHandler("balances", cmd_balances))  # ✅ פקודה חדשה
         
         return app
     except Exception as e:
@@ -45,7 +47,6 @@ async def get_application() -> Application:
     if _application is None:
         _application = await _build_application()
         await _application.initialize()
-        # ✅ לא מפעילים את polling - משתמשים ב-webhook בלבד
     return _application
 
 
@@ -61,11 +62,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         text = (
             f"שלום @{user.username or user.id}! 🌐\n\n"
-            "ברוך הבא ל-SLH Wallet 2.0.\n\n"
-            "כאן נרכז בהמשך:\n"
-            "• ארנק BNB/SLH אישי\n"
-            "• כתובת SLH מזוהה למערכת\n"
-            "• חיבור לכלי המסחר והקהילה.\n\n"
+            "ברוך הבא ל-SLH Wallet 2.0 - ארנק הקהילה! 🚀\n\n"
+            "🪙 **פיצ'רים זמינים:**\n"
+            "• /wallet - ניהול כתובות ארנק\n"
+            "• /balances - צפייה ביתרות\n"
+            "• מסחר P2P (בקרוב)\n\n"
             "פתיחת ארנק / עדכון פרטים:\n"
             f"➡️ {base}/wallet\n"
             f"לקבוצת הקהילה: {settings.community_link}"
@@ -92,11 +93,61 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             f"&first_name={user.first_name or ''}"
         )
 
-        text = "להגדרת ארנק / עדכון פרטים:\n" f"➡️ {url}"
+        text = (
+            "📲 **ניהול ארנק:**\n\n"
+            "להגדרת ארנק / עדכון פרטים:\n"
+            f"➡️ {url}\n\n"
+            "לאחר ההגדרה, השתמש ב:\n"
+            "• /balances - לצפייה ביתרות"
+        )
 
         await update.effective_chat.send_message(text)
     except Exception as e:
         logger.error("Error in /wallet command: %s", e)
+
+
+async def cmd_balances(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """✅ פקודה חדשה - הצגת יתרות"""
+    try:
+        user = update.effective_user
+        if not user:
+            return
+
+        logger.info("BOT /balances from @%s(%s)", user.username, user.id)
+
+        base_url = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
+        api_url = f"{base_url}/api/wallet/{user.id}/balances"
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    
+                    if data.get('success', False):
+                        text = (
+                            "🏦 **יתרות הארנק שלך:**\n\n"
+                            f"💎 BNB: `{data['bnb_balance']:.6f}`\n"
+                            f"🪙 SLH: `{data['slh_balance']:.2f}`\n\n"
+                            f"📍 כתובת BNB: `{data['bnb_address']}`\n"
+                            f"📍 כתובת SLH: `{data['slh_address']}`"
+                        )
+                    else:
+                        text = (
+                            "❌ **לא נמצא ארנק**\n\n"
+                            "עליך לרשום ארנק תחילה:\n"
+                            "השתמש ב-/wallet כדי להירשם"
+                        )
+                else:
+                    text = (
+                        "❌ **לא נמצא ארנק**\n\n"
+                        "עליך לרשום ארנק תחילה:\n"
+                        "השתמש ב-/wallet כדי להירשם"
+                    )
+
+        await update.effective_chat.send_message(text, parse_mode='Markdown')
+    except Exception as e:
+        logger.error("Error in /balances command: %s", e)
+        await update.effective_chat.send_message("❌ אירעה שגיאה בשליפת היתרות. נסה שוב מאוחר יותר.")
 
 
 @router.post("/telegram/webhook")
