@@ -19,7 +19,6 @@ router = APIRouter(tags=["telegram"])
 
 _application: Optional[Application] = None
 
-
 async def _build_application() -> Application:
     if not settings.telegram_bot_token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured")
@@ -34,13 +33,13 @@ async def _build_application() -> Application:
 
         app.add_handler(CommandHandler("start", cmd_start))
         app.add_handler(CommandHandler("wallet", cmd_wallet))
-        app.add_handler(CommandHandler("balances", cmd_balances))  # ✅ פקודה חדשה
+        app.add_handler(CommandHandler("balances", cmd_balances))
+        app.add_handler(CommandHandler("bank", cmd_bank))  # ✅ פקודה חדשה
         
         return app
     except Exception as e:
         logger.error("Failed to build Telegram application: %s", e)
         raise
-
 
 async def get_application() -> Application:
     global _application
@@ -48,7 +47,6 @@ async def get_application() -> Application:
         _application = await _build_application()
         await _application.initialize()
     return _application
-
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
@@ -62,10 +60,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         text = (
             f"שלום @{user.username or user.id}! 🌐\n\n"
-            "ברוך הבא ל-SLH Wallet 2.0 - ארנק הקהילה! 🚀\n\n"
+            "ברוך הבא ל-SLH Wallet 2.0 - ארנק הקהילה המלא! 🚀\n\n"
             "🪙 **פיצ'רים זמינים:**\n"
-            "• /wallet - ניהול כתובות ארנק\n"
+            "• /wallet - ניהול כתובות ארנק ופרטים\n"
             "• /balances - צפייה ביתרות\n"
+            "• /bank - הוספת פרטי בנק\n"
             "• מסחר P2P (בקרוב)\n\n"
             "פתיחת ארנק / עדכון פרטים:\n"
             f"➡️ {base}/wallet\n"
@@ -75,7 +74,6 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.effective_chat.send_message(text)
     except Exception as e:
         logger.error("Error in /start command: %s", e)
-
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
@@ -94,20 +92,52 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         )
 
         text = (
-            "📲 **ניהול ארנק:**\n\n"
+            "📲 **ניהול ארנק מלא:**\n\n"
             "להגדרת ארנק / עדכון פרטים:\n"
             f"➡️ {url}\n\n"
+            "**מה ניתן לעשות:**\n"
+            "• חיבור MetaMask אוטומטי\n"
+            "• הגדרת כתובות BNB/SLH\n"
+            "• הוספת פרטי בנק\n"
+            "• העלאת אישורי העברה\n\n"
             "לאחר ההגדרה, השתמש ב:\n"
-            "• /balances - לצפייה ביתרות"
+            "• /balances - לצפייה ביתרות\n"
+            "• /bank - לניהול פרטי בנק"
         )
 
         await update.effective_chat.send_message(text)
     except Exception as e:
         logger.error("Error in /wallet command: %s", e)
 
+async def cmd_bank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """✅ פקודה חדשה - ניהול פרטי בנק"""
+    try:
+        user = update.effective_user
+        if not user:
+            return
+
+        logger.info("BOT /bank from @%s(%s)", user.username, user.id)
+
+        base = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
+        url = f"{base}/wallet?telegram_id={user.id}"
+
+        text = (
+            "🏦 **ניהול פרטי בנק:**\n\n"
+            "להוספת/עדכון פרטי בנק להעברות:\n"
+            f"➡️ {url}\n\n"
+            "**ניתן להוסיף:**\n"
+            "• שם הבנק וסניף\n"
+            "• מספר חשבון\n"
+            "• העלאת אישורי העברה\n\n"
+            "הפרטים ישמשו לקבלת תשלומים\n"
+            "בעבור המטבעות שלך."
+        )
+
+        await update.effective_chat.send_message(text)
+    except Exception as e:
+        logger.error("Error in /bank command: %s", e)
 
 async def cmd_balances(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """✅ פקודה חדשה - הצגת יתרות"""
     try:
         user = update.effective_user
         if not user:
@@ -148,7 +178,6 @@ async def cmd_balances(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     except Exception as e:
         logger.error("Error in /balances command: %s", e)
         await update.effective_chat.send_message("❌ אירעה שגיאה בשליפת היתרות. נסה שוב מאוחר יותר.")
-
 
 @router.post("/telegram/webhook")
 async def telegram_webhook(
