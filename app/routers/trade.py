@@ -21,7 +21,7 @@ def list_offers(db: Session = Depends(get_db)):
 
 @router.post("/create-offer", response_model=schemas.TradeOfferOut)
 def create_offer(
-    payload: schemas.TradeOfferCreate,  # ✅ משתמש ב-schema עם ולידציה
+    payload: schemas.TradeOfferCreate,
     db: Session = Depends(get_db),
 ):
     # ✅ ולידציה נוספת - בדיקה שהמשתמש קיים
@@ -33,7 +33,7 @@ def create_offer(
         )
 
     # ✅ ולידציה עסקית - הגבלת כמות
-    if payload.amount > 10000:  # הגבלת מקסימום לפי הצורך
+    if payload.amount > 10000:
         raise HTTPException(
             status_code=400,
             detail="Amount too large. Maximum allowed: 10,000"
@@ -56,7 +56,7 @@ def create_offer(
 @router.delete("/offer/{offer_id}")
 def cancel_offer(
     offer_id: int,
-    telegram_id: str,  # במקרה אמיתי - להשתמש ב-auth
+    telegram_id: str,
     db: Session = Depends(get_db),
 ):
     offer = db.get(models.TradeOffer, offer_id)
