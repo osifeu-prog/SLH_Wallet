@@ -43,12 +43,11 @@ async def on_startup():
             logger.info("Telegram Application initialized successfully")
         except Exception as exc:
             logger.error("Failed to initialize Telegram Bot: %s", exc)
-            # Don't crash the entire app if bot fails
     else:
         logger.warning("TELEGRAM_BOT_TOKEN is not set - bot is disabled")
 
 
-# ✅ CORS מאובטח - רק דומיינים מורשים
+# ✅ CORS מאובטח
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
