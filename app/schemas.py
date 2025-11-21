@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, validator
 
+
 class WalletRegisterIn(BaseModel):
     telegram_id: str = Field(..., description="Telegram user id", min_length=1, max_length=50)
     username: Optional[str] = Field(None, max_length=100)
@@ -21,6 +22,7 @@ class WalletRegisterIn(BaseModel):
             return None
         return v
 
+
 class WalletOut(BaseModel):
     telegram_id: str
     username: Optional[str] = None
@@ -28,7 +30,7 @@ class WalletOut(BaseModel):
     last_name: Optional[str] = None  # ✅ שם משפחה חדש
     bnb_address: Optional[str] = None
     slh_address: Optional[str] = None
-    bank_account_number: Optional[str] = None  # ✅ פרטי בנק חדשים
+    bank_account_number: Optional[str] = None
     bank_name: Optional[str] = None
     bank_branch: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -36,6 +38,7 @@ class WalletOut(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class TradeOfferOut(BaseModel):
     id: int
@@ -49,7 +52,7 @@ class TradeOfferOut(BaseModel):
     class Config:
         from_attributes = True
 
-# ✅ schema עם ולידציה מתוקנת
+
 class TradeOfferCreate(BaseModel):
     telegram_id: str = Field(..., min_length=1, max_length=50)
     token_symbol: str = Field(..., pattern="^(BNB|SLH)$")  # ✅ תיקון: regex -> pattern
@@ -61,6 +64,7 @@ class TradeOfferCreate(BaseModel):
         if v <= 0:
             raise ValueError('Must be positive')
         return v
+
 
 class BalanceResponse(BaseModel):
     telegram_id: str
