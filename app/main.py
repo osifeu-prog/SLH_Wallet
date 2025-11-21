@@ -21,7 +21,15 @@ def setup_logging():
 
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    """✅ אתחול מסד נתונים - מוודא שהטבלות מעודכנות"""
+    try:
+        # מחיקת הטבלות הקיימות ויצירתן מחדש עם הסכימה המעודכנת
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables recreated successfully")
+    except Exception as e:
+        logger.error("Error initializing database: %s", e)
+        raise
 
 
 app = FastAPI(
