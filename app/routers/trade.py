@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -5,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+
+logger = logging.getLogger("slh_wallet.trade_router")
 
 router = APIRouter(prefix="/api/trade", tags=["trade"])
 
