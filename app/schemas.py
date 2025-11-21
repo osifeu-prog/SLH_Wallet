@@ -43,10 +43,10 @@ class TradeOfferOut(BaseModel):
         from_attributes = True
 
 
-# ✅ schema חדש עם ולידציה ליצירת הצעות trade
+# ✅ schema חדש עם ולידציה ליצירת הצעות trade - מתוקן!
 class TradeOfferCreate(BaseModel):
     telegram_id: str = Field(..., min_length=1, max_length=50)
-    token_symbol: str = Field(..., regex="^(BNB|SLH)$")
+    token_symbol: str = Field(..., pattern="^(BNB|SLH)$")  # ✅ תיקון: regex -> pattern
     amount: float = Field(..., gt=0, description="Must be positive")
     price_bnb: float = Field(..., gt=0, description="Must be positive")
 
@@ -55,3 +55,24 @@ class TradeOfferCreate(BaseModel):
         if v <= 0:
             raise ValueError('Must be positive')
         return v
+
+
+# ✅ schema נוסף לביטול הצעת trade
+class TradeOfferCancel(BaseModel):
+    telegram_id: str = Field(..., min_length=1, max_length=50)
+    
+    class Config:
+        from_attributes = True
+
+
+# ✅ schema לתגובת יתרות
+class BalanceResponse(BaseModel):
+    telegram_id: str
+    bnb_balance: float
+    slh_balance: float
+    bnb_address: str
+    slh_address: str
+    success: bool
+
+    class Config:
+        from_attributes = True
