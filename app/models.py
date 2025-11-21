@@ -1,9 +1,6 @@
 from datetime import datetime
-
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
-
 from .database import Base
-
 
 class Wallet(Base):
     __tablename__ = "wallets"
@@ -11,9 +8,15 @@ class Wallet(Base):
     telegram_id = Column(String, primary_key=True, index=True)
     username = Column(String, nullable=True, index=True)
     first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)  # ✅ שם משפחה חדש
 
     bnb_address = Column(String, nullable=True)
     slh_address = Column(String, nullable=True)
+    
+    # ✅ פרטי בנק חדשים
+    bank_account_number = Column(String, nullable=True)
+    bank_name = Column(String, nullable=True)
+    bank_branch = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
