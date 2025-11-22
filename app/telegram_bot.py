@@ -26,7 +26,7 @@ async def _build_application() -> Application:
     if not settings.telegram_bot_token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured")
 
-    app = (
+    application = (
         ApplicationBuilder()
         .token(settings.telegram_bot_token)
         .concurrent_updates(True)
@@ -34,12 +34,16 @@ async def _build_application() -> Application:
     )
 
     # Handlers
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("wallet", cmd_wallet))
-    app.add_handler(CommandHandler("bank", cmd_bank))
-    app.add_handler(CommandHandler("balances", cmd_balances))
+    application.add_handler(CommandHandler("start", cmd_start))
+    application.add_handler(CommandHandler("wallet", cmd_wallet))
+    application.add_handler(CommandHandler("bank", cmd_bank))
+    application.add_handler(CommandHandler("balances", cmd_balances))
 
-    return app
+    # חשוב: initialize + start כדי שטלגרם לא יזרוק שגיאה
+    await application.initialize()
+    await application.start()
+
+    return application
 
 
 async def get_application() -> Application:
