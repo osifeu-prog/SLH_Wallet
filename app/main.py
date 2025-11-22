@@ -1,140 +1,129 @@
 import logging
-from pathlib import Path
-from typing import List
-
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .database import Base, engine, get_db
-from .routers import wallet as wallet_router
-from .routers import trade as trade_router
-from .routers import admin as admin_router
-from .telegram_bot import router as telegram_router
+from .database import Base, engine
+from .db_schema import ensure_schema
+from .routers import wallet, trade
+from .telegram_bot import router as telegram_router, get_application
 
 logger = logging.getLogger("slh_wallet")
 
 
-def init_logging() -> None:
-    """
-    Basic logging setup for the service.
-
-    לא תלוי ב-settings.log_level כדי לא לשבור סביבות ישנות.
-    אם יש log_level ב-settings – נשתמש בו, אחרת INFO.
-    """
-    level_name = getattr(settings, "log_level", "INFO")
-    level = getattr(logging, str(level_name).upper(), logging.INFO)
-
+def setup_logging():
+    level = getattr(logging, settings.log_level.upper(), logging.INFO)
     logging.basicConfig(
         level=level,
-        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-    )
-    logger.info("Logging initialized with level %s", logging.getLevelName(level))
-
-
-def create_app() -> FastAPI:
-    # לוגים + סכמת DB
-    init_logging()
-    Base.metadata.create_all(bind=engine)
-
-    app = FastAPI(
-        title="SLH_Wallet_2.0",
-        description="Unified SLH Wallet (BNB/SLH) + Community P2P Exchange + Bot API",
-        version="0.1.0",
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    # CORS
-    origins: List[str] = getattr(settings, "cors_origins", ["*"])
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
-    # Static frontend
-    static_dir = Path(__file__).resolve().parent.parent / "frontend"
-    app.mount(
-        "/static",
-        StaticFiles(directory=static_dir),
-        name="static",
-    )
+def init_db():
+    """✅ אתחול מסד נתונים - מוודא שהטבלות מעודכנות"""
+    try:
+        # מחיקת הטבלות הקיימות ויצירתן מחדש עם הסכימה המעודכנת
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables recreated successfully")
+    except Exception as e:
+        logger.error("Error initializing database: %s", e)
+        raise
 
-    @app.get("/health")
-    async def health():
-        return {"status": "ok"}
 
-    @app.get("/", response_class=HTMLResponse)
-    async def index_page():
-        """
-        דף הבית – בורסת הקהילה.
-        """
-        index_path = static_dir / "index.html"
-        if index_path.is_file():
-            return FileResponse(index_path)
-        # fallback בסיסי אם אין קובץ
-        return HTMLResponse("<h1>SLH • Community P2P Exchange</h1>", status_code=200)
+app = FastAPI(
+    title="SLH_Wallet_2.0",
+    version="0.1.0",
+    description="Unified SLH Wallet (BNB/SLH) + Bot API",
+)
 
-    @app.get("/wallet", response_class=HTMLResponse)
-    async def wallet_page(telegram_id: str | None = None):
-        """
-        דף הארנק – כרגע בעיקר הסבר. הפעולות עצמן דרך הבוט.
-        """
-        wallet_path = static_dir / "wallet.html"
-        if wallet_path.is_file():
-            return FileResponse(wallet_path)
-        return HTMLResponse(
-            "<h1>SLH Wallet</h1><p>הארנק מנוהל דרך בוט הטלגרם.</p>",
-            status_code=200,
-        )
 
-    @app.get("/admin", response_class=HTMLResponse)
-    async def admin_page():
-        """
-        דף אדמין (כרגע placeholder / סטטי).
-        """
-        admin_path = static_dir / "admin.html"
-        if admin_path.is_file():
-            return FileResponse(admin_path)
-        return HTMLResponse("<h1>SLH Admin</h1>", status_code=200)
+@app.on_event("startup")
+async def on_startup():
+    setup_logging()
+    init_db()
+    logger.info("=== Startup SLH_Wallet_2.0 ===")
 
-    @app.get("/academy/money", response_class=HTMLResponse)
-    async def academy_money():
-        """
-        דף לימודי: מבוא לכסף קהילתי ו-SLH.
-        """
-        html_path = static_dir / "academy" / "money.html"
-        if html_path.is_file():
-            return FileResponse(html_path)
-        return HTMLResponse(
-            "<h1>SLH Academy</h1><p>Lesson page not found.</p>",
-            status_code=404,
-        )
+    if settings.telegram_bot_token:
+        try:
+            await get_application()
+            logger.info("Telegram Application initialized successfully")
+        except Exception as exc:
+            logger.error("Failed to initialize Telegram Bot: %s", exc)
+    else:
+        logger.warning("TELEGRAM_BOT_TOKEN is not set - bot is disabled")
 
-    @app.get("/api/meta")
-    async def api_meta():
-        """
-        מידע כללי – לשימוש פרונט / בוט / אופס.
-        """
-        return {
-            "env": settings.env,
-            "base_url": settings.base_url,
-            "bot_username": settings.bot_username,
-            "community_link": getattr(settings, "community_link", None),
-            "slh_ton_factor": getattr(settings, "slh_ton_factor", None),
+
+# ✅ CORS מאובטח
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+    allow_credentials=True,
+)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info("[WEB] %s %s", request.method, request.url.path)
+    response = await call_next(request)
+    logger.info("[WEB] %s %s -> %s", request.method, request.url.path, response.status_code)
+    return response
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+
+@app.get("/")
+async def index():
+    meta = settings.as_meta()
+    return {
+        "status": "ok",
+        "name": meta["service"],
+        "env": meta["env"],
+        "base_url": meta["base_url"],
+        "bot_url": meta["bot_url"],
+        "community": meta["community"],
+    }
+
+
+@app.get("/api/meta")
+async def api_meta():
+    meta = settings.as_meta()
+    return {
+        **meta,
+        "has_bot_token": bool(settings.telegram_bot_token),
+        "has_admin_log_chat": bool(settings.telegram_admin_chat_id),
+        "db_url_prefix": settings.database_url.split(":", 1)[0],
+        "security": {
+            "cors_restricted": len(settings.allowed_origins) > 0 and "*" not in settings.allowed_origins,
+            "secret_key_configured": settings.secret_key != "change-me",
         }
-
-    # Routers – API אמיתי
-    app.include_router(wallet_router.router)
-    app.include_router(trade_router.router)
-    app.include_router(admin_router.router)
-    app.include_router(telegram_router)
-
-    logger.info("=== Startup SLH_Wallet_2.0 FULL ===")
-    return app
+    }
 
 
-app = create_app()
+app.mount(
+    "/static",
+    StaticFiles(directory="frontend"),
+    name="static",
+)
+
+
+@app.get("/wallet", response_class=HTMLResponse)
+async def wallet_page():
+    return FileResponse("frontend/wallet.html")
+
+
+@app.get("/landing", response_class=HTMLResponse)
+async def landing_page():
+    return FileResponse("frontend/index.html")
+
+
+app.include_router(wallet.router)
+app.include_router(trade.router)
+app.include_router(telegram_router)

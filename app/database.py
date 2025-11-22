@@ -13,11 +13,17 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+)
 
 
 def get_db():
-    db = SessionLocal()
+    from sqlalchemy.orm import Session
+
+    db: Session = SessionLocal()
     try:
         yield db
     finally:

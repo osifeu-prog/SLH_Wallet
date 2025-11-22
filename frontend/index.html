@@ -2,273 +2,144 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>SLH Community Exchange</title>
+  <title>SLH Wallet 2.0</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/style.css">
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #0f172a 0, #020617 55%, #000 100%);
-      color: #e5e7eb;
-      margin: 0;
+    .landing-container {
+      display: flex;
       min-height: 100vh;
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-    }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.2fr);
-      gap: 2rem;
-      width: 100%;
-      max-width: 1100px;
-      padding: 2rem 1.25rem;
-    }
-    @media (max-width: 900px) {
-      .layout {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-    .card {
-      background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,64,175,0.6));
-      border-radius: 1.5rem;
-      padding: 1.75rem;
-      box-shadow: 0 22px 60px rgba(0,0,0,0.55);
-      border: 1px solid rgba(148,163,184,0.35);
-    }
-    .chip {
-      display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
-      padding: 0.25rem 0.8rem;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.85);
-      border: 1px solid rgba(56,189,248,0.5);
-      color: #e0f2fe;
-      font-size: 0.8rem;
-      margin-bottom: 0.75rem;
+      justify-content: center;
+      padding: 1.5rem;
     }
-    h1 {
-      font-size: 1.75rem;
-      margin: 0 0 0.35rem;
-      letter-spacing: 0.03em;
-    }
-    .subtitle {
-      margin: 0 0 1.2rem;
-      color: #cbd5f5;
-      font-size: 0.9rem;
-    }
-    .badge-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      margin-bottom: 1.4rem;
-    }
-    .badge {
-      font-size: 0.75rem;
-      padding: 0.2rem 0.55rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.5);
-      color: #e5e7eb;
-    }
-    table {
+    
+    .landing-card {
+      background: #111827;
+      padding: 2.5rem;
+      border-radius: 1rem;
+      max-width: 480px;
       width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.75rem;
-      font-size: 0.8rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      border: 1px solid #1f2937;
+      text-align: center;
     }
-    th, td {
-      padding: 0.5rem 0.35rem;
-      text-align: right;
-      border-bottom: 1px solid rgba(30,64,175,0.6);
+    
+    .landing-card h1 {
+      color: #f6851b;
+      margin-bottom: 1rem;
+      font-size: 2rem;
     }
-    th {
+    
+    .landing-card p {
+      color: #9ca3af;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    
+    .btn-primary {
+      display: inline-block;
+      background: #f6851b;
+      color: #050816;
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      text-decoration: none;
       font-weight: 600;
-      color: #bfdbfe;
-      border-bottom-width: 2px;
-    }
-    tr:hover td {
-      background: rgba(15,23,42,0.5);
-    }
-    .pill {
-      display: inline-flex;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      border: 1px solid rgba(96,165,250,0.8);
-      color: #dbeafe;
-    }
-    .sidebar-title {
-      font-size: 1.1rem;
-      margin: 0 0 0.6rem;
-    }
-    .sidebar-section {
-      margin-bottom: 1.2rem;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.55rem 0.9rem;
-      border-radius: 999px;
+      margin: 0.5rem;
+      transition: all 0.3s ease;
       border: none;
       cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 500;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      color: #ecfdf5;
-      text-decoration: none;
-      box-shadow: 0 14px 30px rgba(22,163,74,0.5);
     }
+    
+    .btn-primary:hover {
+      background: #e2761b;
+      transform: translateY(-2px);
+    }
+    
     .btn-secondary {
-      background: rgba(15,23,42,0.9);
-      border: 1px solid rgba(148,163,184,0.6);
-      box-shadow: none;
-      color: #e5e7eb;
+      display: inline-block;
+      background: #2563eb;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 0.5rem;
+      transition: all 0.3s ease;
     }
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      margin-top: 1rem;
+    
+    .btn-secondary:hover {
+      background: #1d4ed8;
+      transform: translateY(-2px);
     }
-    .muted {
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
-    a {
+    
+    .link {
       color: #60a5fa;
       text-decoration: none;
+      display: block;
+      margin: 0.5rem 0;
     }
-    a:hover {
-      text-decoration: underline;
+    
+    .link:hover {
+      color: #38bdf8;
+    }
+    
+    .features {
+      display: grid;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    
+    .feature {
+      background: #1a2435;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border-left: 4px solid #f6851b;
     }
   </style>
 </head>
 <body>
-  <div class="layout">
-    <section class="card" id="market-card">
-      <div class="chip">
-        <span>SLH • Community P2P Exchange</span>
-      </div>
-      <h1>בורסת הקהילה של SLH</h1>
-      <p class="subtitle">
-        שוק חופשי בין חברי הקהילה – הצעות למכירה וקנייה של SLH על רשת BNB ו-TON,
-        עם שקיפות מלאה ומודל קהילתי פתוח.
+  <div class="landing-container">
+    <div class="landing-card">
+      <h1>🦊 SLH Wallet 2.0</h1>
+      <p>
+        ארנק BNB/SLH מתקדם עם חיבור MetaMask, בוט טלגרם וקהילת SLHNET.
       </p>
-
-      <div class="badge-row">
-        <span class="badge">P2P Social Trading</span>
-        <span class="badge">BNB + SLH_BNB</span>
-        <span class="badge">SLH_TON (1 = 1000 SLH_BNB)</span>
-        <span class="badge">Community First</span>
-      </div>
-
-      <div id="summary" class="muted" style="margin-bottom: 0.5rem;">
-        טוען סיכום שוק...
-      </div>
-
-      <table id="offers-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>מוכר</th>
-            <th>טוקן</th>
-            <th>כמות</th>
-            <th>מחיר ליחידה (BNB)</th>
-            <th>סטטוס</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="6" style="text-align:center; padding: 1rem;">טוען הצעות...</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p class="muted" style="margin-top: 0.75rem;">
-        את פתיחת ההצעות עצמן מבצעים דרך בוט הטלגרם באמצעות הפקודה
-        <code>/sell</code>. הדף הזה מציג את השוק לכולם.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2 class="sidebar-title">איך מצטרפים למסחר?</h2>
-
-      <div class="sidebar-section">
-        <ol class="muted" style="padding-right: 1.1rem; margin: 0;">
-          <li>פותחים ארנק דרך בוט הטלגרם <a href="https://t.me/Slh_selha_bot" target="_blank">@Slh_selha_bot</a> (/start).</li>
-          <li>מקשרים כתובות BNB / SLH_BNB / SLH_TON באמצעות הפקודות /link_bnb, /link_slh, /link_slh_ton.</li>
-          <li>רואים יתרות עם /balances.</li>
-          <li>פותחים הצעות מכירה עם /sell.</li>
-        </ol>
-      </div>
-
-      <div class="sidebar-section">
-        <h3 class="sidebar-title">קישורים חשובים</h3>
-        <div class="btn-row">
-          <a class="btn" href="https://t.me/Slh_selha_bot" target="_blank">
-            💬 פתיחת ארנק בבוט
-          </a>
-          <a class="btn btn-secondary" href="https://t.me/+HIzvM8sEgh1kNWY0" target="_blank">
-            👥 קהילת SLHNET
-          </a>
-          <a class="btn btn-secondary" href="/admin" target="_blank">
-            🛠 לוח אדמין
-          </a>
+      
+      <div class="features">
+        <div class="feature">
+          <strong>🦊 MetaMask Integration</strong>
+          <p>חיבור ישיר לארנק שלך - ללא צורך בהזנת כתובות ידנית</p>
+        </div>
+        <div class="feature">
+          <strong>🤖 Telegram Bot</strong>
+          <p>ניהול מלא דרך הבוט - יתרות, מסחר ופרטי חשבון</p>
+        </div>
+        <div class="feature">
+          <strong>🏦 Banking Support</strong>
+          <p>הוספת פרטי בנק ואישורי העברה</p>
         </div>
       </div>
-
-      <div class="sidebar-section">
-        <h3 class="sidebar-title">שקיפות והמשך פיתוח</h3>
-        <p class="muted">
-          המערכת הזו באפיון מתמשך כקוד פתוח קהילתי: שילוב בין ארנקי משתמשים חיצוניים (MetaMask, TON),
-          Ledger פנימי של הקהילה ומודל מסחר P2P.
-        </p>
+      
+      <div>
+        <a class="btn-primary" href="/wallet">
+          🚀 פתיחת ארנק עם MetaMask
+        </a>
+        <br>
+        <a class="btn-secondary" href="https://t.me/Slh_selha_bot" target="_blank">
+          🤖 פתיחת בוט SLH Wallet
+        </a>
       </div>
-    </section>
+      
+      <div style="margin-top: 2rem;">
+        <a class="link" href="https://t.me/+HIzvM8sEgh1kNWY0" target="_blank">
+          👥 הצטרפות לקהילת העסקים
+        </a>
+        <div style="color: #6b7280; font-size: 0.9rem; margin-top: 1rem;">
+          כבר יש לך ארנק? השתמש ב-/balances בבוט כדי לראות יתרות
+        </div>
+      </div>
+    </div>
   </div>
-
-  <script>
-    async function loadMarket() {
-      try {
-        const resOffers = await fetch('/api/trade/offers');
-        const offers = await resOffers.json();
-        const resSummary = await fetch('/api/trade/summary');
-        const summary = await resSummary.json();
-
-        const tbody = document.querySelector('#offers-table tbody');
-        tbody.innerHTML = '';
-
-        if (!offers.length) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1rem;">אין עדיין הצעות פעילות. פתחו הצעה חדשה בבוט באמצעות /sell.</td></tr>';
-        } else {
-          for (const o of offers) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${o.id}</td>
-              <td>${o.seller_telegram_id}</td>
-              <td>${o.token_symbol}</td>
-              <td>${o.amount}</td>
-              <td>${o.price_bnb}</td>
-              <td><span class="pill">${o.status}</span></td>
-            `;
-            tbody.appendChild(tr);
-          }
-        }
-
-        const summaryDiv = document.getElementById('summary');
-        let tokens = (summary.tokens || []).join(' • ');
-        summaryDiv.textContent = `הצעות פעילות: ${summary.active_offers} | טוקנים בשוק: ${tokens || '—'}`;
-      } catch (e) {
-        console.error(e);
-        const tbody = document.querySelector('#offers-table tbody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1rem;">שגיאה בטעינת נתוני השוק.</td></tr>';
-      }
-    }
-
-    loadMarket();
-    setInterval(loadMarket, 30000);
-  </script>
 </body>
 </html>
