@@ -63,6 +63,19 @@ def create_app() -> FastAPI:
     async def admin_page():
         return FileResponse(static_dir / "admin.html")
 
+
+@app.get("/academy/money", response_class=HTMLResponse)
+def academy_money():
+    """Static educational page: Intro to community money & SLH."""
+    html_path = Path(__file__).resolve().parent.parent / "frontend" / "academy" / "money.html"
+    try:
+        content = html_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>SLH Academy</h1><p>Page not found.</p>", status_code=404)
+    return HTMLResponse(content=content, status_code=200)
+
+
+
     @app.get("/api/meta")
     async def api_meta():
         return {

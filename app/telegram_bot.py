@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -362,6 +362,35 @@ async def cmd_reflink(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await update.effective_chat.send_message(text)
 
 
+
+
+async def cmd_academy_money(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a link to the SLH Academy lesson about money & community."""
+    user = update.effective_user
+    chat = update.effective_chat
+    logger.info("BOT /academy_money from @%s(%s)", user.username, user.id)
+
+    base_url = settings.base_url.rstrip("/")
+    lesson_url = f"{base_url}/academy/money"
+
+    text = (
+        "📘 *SLH Academy – מבוא לכסף קהילתי*\n\n"
+        "זהו שיעור פתיחה למשקיעים ולחברי הקהילה, שבו מדברים על:\n"
+        "• מהו כסף כהילך חוקי, כהסכם חברתי וכהצבעה\n"
+        "• איך בלוקצ'יין הופך להיות מחברת אמון שלא מוחקים ממנה שורות\n"
+        "• איך SLH מחברת בין ארנק אישי, ספר קהילתי ואקדמיה\n\n"
+        "לחץ על הכפתור כדי לפתוח את השיעור המלא בדפדפן."
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📘 פתיחת השיעור", url=lesson_url)],
+    ])
+
+    await chat.send_message(
+        text=text,
+        parse_mode="Markdown",
+        reply_markup=keyboard,
+    )
 async def get_application() -> Application:
     global _application
     if _application is None:
