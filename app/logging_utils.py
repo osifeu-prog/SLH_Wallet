@@ -1,11 +1,10 @@
-
 import logging
-from .config import get_settings
+from .config import settings
 
-settings = get_settings()
 
 logger = logging.getLogger("slh_wallet")
-level = logging.getLevelName(settings.LOG_LEVEL.upper()) if hasattr(logging, settings.LOG_LEVEL.upper()) else logging.INFO
+
+level = getattr(logging, settings.log_level.upper(), logging.INFO)
 logger.setLevel(level)
 
 if not logger.handlers:
@@ -15,5 +14,8 @@ if not logger.handlers:
     logger.addHandler(ch)
 
 
-async def log_event(kind: str, message: str):
+async def log_event(kind: str, message: str) -> None:
+    """
+    Simple async-compatible logging helper used across the project.
+    """
     logger.info("[%s] %s", kind.upper(), message)

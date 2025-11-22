@@ -8,22 +8,21 @@ class Base(DeclarativeBase):
     pass
 
 
+# Synchronous SQLAlchemy engine (sufficient for our needs)
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
 )
 
-SessionLocal = sessionmaker(
-    bind=engine,
-    autoflush=False,
-    autocommit=False,
-)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db():
-    from sqlalchemy.orm import Session
-
-    db: Session = SessionLocal()
+    """
+    FastAPI dependency that yields a DB session and closes it afterwards.
+    """
+    db = SessionLocal()
     try:
         yield db
     finally:
