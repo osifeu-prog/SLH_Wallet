@@ -108,7 +108,7 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         hub_url = f"{base}/u/{user.id}"
 
         text = (
-            "📲 *הארנק שלך במערכת SLH מוכן!*
+            "📲 *הארנק שלך במערכת SLH מוכן!*"
 
 "
             "אנחנו לא שומרים סיסמאות ולא מבקשים רישום באתר.
