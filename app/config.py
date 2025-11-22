@@ -1,93 +1,59 @@
-import os
 import json
+from functools import lru_cache
 from typing import List, Optional
 
+from pydantic import BaseSettings, Field
 
-class Settings:
-    """
-    Central configuration object for the SLH Wallet service.
-    Reads from environment variables provided by Koyeb / .env.
-    """
 
-    def __init__(self) -> None:
-        # Environment
-        self.env: str = os.getenv("ENV", "production")
+class Settings(BaseSettings):
+    env: str = Field("production", alias="ENV")
+    database_url: str = Field(..., alias="DATABASE_URL")
 
-        # Core secrets
-        self.secret_key: str = os.getenv("SECRET_KEY", "change-me")
-        if self.env == "production" and self.secret_key == "change-me":
-            raise ValueError("SECRET_KEY must be set in production environment!")
+    telegram_bot_token: str = Field("", alias="TELEGRAM_BOT_TOKEN")
+    bot_username: str = Field("Slh_selha_bot", alias="BOT_USERNAME")
 
-        # Database
-        self.database_url: str = os.getenv("DATABASE_URL", "")
+    base_url: str = Field("", alias="BASE_URL")
+    frontend_api_base: str = Field("", alias="FRONTEND_API_BASE")
+    frontend_bot_url: str = Field("https://t.me/Slh_selha_bot", alias="FRONTEND_BOT_URL")
+    community_link: str = Field("https://t.me/+HIzvM8sEgh1kNWY0", alias="COMMUNITY_LINK")
 
-        # Logging
-        self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    bsc_rpc_url: str = Field("", alias="BSC_RPC_URL")
+    bscscan_api_key: str = Field("", alias="BSCSCAN_API_KEY")
+    slh_token_address: str = Field("", alias="SLH_TOKEN_ADDRESS")
 
-        # Telegram
-        self.telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-        self.bot_username: Optional[str] = os.getenv("BOT_USERNAME") or None
-        self.admin_log_chat_id: Optional[str] = os.getenv("ADMIN_LOG_CHAT_ID") or None
+    secret_key: str = Field("change-me", alias="SECRET_KEY")
+    payment_methods_raw: str = Field('["BNB","SLH","CREDIT_CARD","BANK_TRANSFER"]', alias="PAYMENT_METHODS")
 
-        # URLs / Frontend
-        self.base_url: str = os.getenv("BASE_URL", "").rstrip("/")
-        self.frontend_api_base: str = os.getenv("FRONTEND_API_BASE", self.base_url).rstrip("/")
-        self.frontend_bot_url: Optional[str] = os.getenv("FRONTEND_BOT_URL") or None
-        self.community_link: Optional[str] = os.getenv("COMMUNITY_LINK") or None
+    slh_ton_factor: float = Field(1000.0, alias="SLH_TON_FACTOR")
 
-        # Blockchain – BNB / SLH
-        self.bscscan_api_key: Optional[str] = os.getenv("BSCSCAN_API_KEY") or None
-        self.bsc_rpc_url: str = os.getenv("BSC_RPC_URL", "https://bsc-dataseed.binance.org/")
-        self.slh_token_address: Optional[str] = os.getenv("SLH_TOKEN_ADDRESS") or None
+    admin_log_chat_id: Optional[str] = Field(None, alias="ADMIN_LOG_CHAT_ID")
+    admin_dash_token: str = Field("", alias="ADMIN_DASH_TOKEN")
 
-        # Blockchain – TON / SLH_TON
-        self.ton_api_key: Optional[str] = os.getenv("TON_API_KEY") or None
-        # Logical factor between SLH_TON and SLH_BNB (1 SLH_TON = factor * SLH_BNB)
+    cors_origins_raw: str = '["*"]'
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
+
+    @property
+    def payment_methods(self) -> List[str]:
         try:
-            self.slh_ton_factor: float = float(os.getenv("SLH_TON_FACTOR", "1000"))
-        except ValueError:
-            self.slh_ton_factor = 1000.0
-
-        # Payment methods (for future use in docs / UI)
-        payment_methods_raw = os.getenv("PAYMENT_METHODS", "[]")
-        try:
-            self.payment_methods: List[str] = json.loads(payment_methods_raw)
+            return json.loads(self.payment_methods_raw)
         except Exception:
-            self.payment_methods = []
-
-        # Internal API base (for the bot to call HTTP if needed)
-        self.internal_api_base: str = os.getenv("INTERNAL_API_BASE", "http://127.0.0.1:8000").rstrip("/")
+            return ["BNB", "SLH"]
 
     @property
     def cors_origins(self) -> List[str]:
-        """
-        Derive a safe list of CORS origins based on base URL / frontend URLs.
-        """
-        origins: List[str] = []
-        for url in (self.base_url, self.frontend_api_base, self.frontend_bot_url, self.community_link):
-            if url and url.startswith("http"):
-                origins.append(url.rstrip("/"))
-        # Always allow localhost for local testing
-        origins.append("http://localhost")
-        origins.append("http://127.0.0.1")
-        return sorted(set(origins))
-
-    def as_meta(self) -> dict:
-        """
-        Small meta payload for /api/meta endpoint.
-        """
-        return {
-            "service": "SLH_Wallet_2.0",
-            "env": self.env,
-            "base_url": self.base_url,
-            "frontend_api_base": self.frontend_api_base,
-            "bot_username": self.bot_username,
-            "bot_url": f"https://t.me/{self.bot_username}" if self.bot_username else None,
-            "community": self.community_link,
-            "payment_methods": self.payment_methods,
-            "slh_token_address": self.slh_token_address,
-            "slh_ton_factor": self.slh_ton_factor,
-        }
+        try:
+            return json.loads(self.cors_origins_raw)
+        except Exception:
+            return ["*"]
 
 
-settings = Settings()
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

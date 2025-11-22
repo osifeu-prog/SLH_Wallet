@@ -3,59 +3,48 @@ from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 from .database import Base
 
 
-def utcnow():
-    return datetime.utcnow()
-
-
 class Wallet(Base):
     __tablename__ = "wallets"
 
-    telegram_id = Column(String, primary_key=True, index=True)
-    username = Column(String, nullable=True, index=True)
-    first_name = Column(String, nullable=True)
-    last_name = Column(String, nullable=True)
+    telegram_id = Column(String(50), primary_key=True, index=True)
+    username = Column(String(50), nullable=True, index=True)
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
 
-    # External blockchain addresses
-    bnb_address = Column(String, nullable=True)
-    slh_address = Column(String, nullable=True)          # SLH on BNB chain
-    slh_ton_address = Column(String, nullable=True)      # SLH on TON chain (future)
+    bnb_address = Column(String(255), nullable=True)
+    slh_address = Column(String(255), nullable=True)
+    slh_ton_address = Column(String(255), nullable=True)
 
-    # Optional bank info for off-chain settlements
-    bank_account_number = Column(String, nullable=True)
-    bank_account_name = Column(String, nullable=True)
+    bank_account_number = Column(String(100), nullable=True)
+    bank_account_name = Column(String(255), nullable=True)
 
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
-
-
-class InternalBalance(Base):
-    """
-    Simple internal ledger for the community (P2P / rewards / games).
-    asset examples: 'SLH_BNB', 'SLH_TON', 'SLH_INTERNAL'
-    """
-
-    __tablename__ = "internal_balances"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    telegram_id = Column(String, index=True, nullable=False)
-    asset = Column(String, nullable=False)
-    amount = Column(Float, nullable=False, default=0.0)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class TradeOffer(Base):
     __tablename__ = "trade_offers"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    seller_telegram_id = Column(String(50), index=True, nullable=False)
+    buyer_telegram_id = Column(String(50), index=True, nullable=True)
 
-    seller_telegram_id = Column(String, index=True, nullable=False)
-    buyer_telegram_id = Column(String, index=True, nullable=True)
-
-    token_symbol = Column(String, nullable=False)  # e.g. 'SLH_BNB' or 'SLH_TON'
+    token_symbol = Column(String(50), nullable=False)
     amount = Column(Float, nullable=False)
-    price_bnb = Column(Float, nullable=False)      # price per unit in BNB
+    price_bnb = Column(Float, nullable=False)
 
-    status = Column(String, nullable=False, default="ACTIVE")  # ACTIVE / PENDING_PAYMENT / COMPLETED / CANCELLED
+    status = Column(String(20), default="ACTIVE", index=True)
 
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Referral(Base):
+    __tablename__ = "referrals"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    referrer_telegram_id = Column(String(50), index=True, nullable=False)
+    referred_telegram_id = Column(String(50), index=True, nullable=False, unique=True)
+    reward_amount_slh_ton = Column(Float, default=0.001)
+
+    created_at = Column(DateTime, default=datetime.utcnow)

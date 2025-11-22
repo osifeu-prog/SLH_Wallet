@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>SLH Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0f172a 0, #020617 55%, #000 100%);
+      color: #e5e7eb;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .page {
+      width: 100%;
+      max-width: 960px;
+      padding: 1.5rem;
+    }
+    .card {
+      background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,64,175,0.6));
+      border-radius: 1.5rem;
+      padding: 1.75rem;
+      box-shadow: 0 22px 60px rgba(0,0,0,0.55);
+      border: 1px solid rgba(148,163,184,0.35);
+    }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .stat {
+      flex: 1 1 150px;
+      background: rgba(15,23,42,0.8);
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(148,163,184,0.4);
+    }
+    .label {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+    .value {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .token-badge {
+      display: inline-flex;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid rgba(96,165,250,0.8);
+      font-size: 0.75rem;
+      margin-left: 0.25rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+    }
+    th, td {
+      padding: 0.35rem 0.25rem;
+      text-align: right;
+      border-bottom: 1px solid rgba(30,64,175,0.6);
+    }
+    th {
+      color: #bfdbfe;
+      border-bottom-width: 2px;
+    }
+    .token-badge-row {
+      margin-top: 0.5rem;
+    }
+    .muted {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .token-input {
+      width: 100%;
+      max-width: 260px;
+      padding: 0.4rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.9);
+      color: #e5e7eb;
+      margin-bottom: 0.75rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #ecfdf5;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <h1>SLH Admin Dashboard</h1>
+      <p class="muted">
+        לוח ניהול מצומצם לצפייה מהירה בפעילות הארנקים, הרפרלים והמסחר הקהילתי.
+      </p>
+
+      <input id="token-input" class="token-input" type="password" placeholder="X-Admin-Token" />
+      <button class="btn" onclick="loadSummary()">טעינת נתונים</button>
+
+      <div id="stats" style="margin-top:1rem; display:none;">
+        <div class="row">
+          <div class="stat">
+            <div class="label">ארנקים רשומים</div>
+            <div class="value" id="stat-wallets">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">סך רפרלים</div>
+            <div class="value" id="stat-referrals">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">סך הצעות מסחר</div>
+            <div class="value" id="stat-offers">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">הצעות פעילות</div>
+            <div class="value" id="stat-active-offers">0</div>
+          </div>
+        </div>
+
+        <div class="token-badge-row">
+          <span class="muted">20 ההצעות האחרונות:</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>מוכר</th>
+              <th>טוקן</th>
+              <th>כמות</th>
+              <th>מחיר BNB</th>
+              <th>סטטוס</th>
+            </tr>
+          </thead>
+          <tbody id="offers-body">
+          </tbody>
+        </table>
+      </div>
+
+      <p id="error" class="muted" style="margin-top:1rem;"></p>
+    </section>
+  </main>
+
+  <script>
+    async function loadSummary() {
+      const token = document.getElementById("token-input").value.trim();
+      const errorEl = document.getElementById("error");
+      const statsEl = document.getElementById("stats");
+      errorEl.textContent = "";
+      statsEl.style.display = "none";
+
+      if (!token) {
+        errorEl.textContent = "נא להזין X-Admin-Token (כפי שהוגדר במשתני הסביבה).";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/admin/summary", {
+          headers: { "X-Admin-Token": token }
+        });
+        if (!res.ok) {
+          errorEl.textContent = "שגיאה בטעינת נתונים (אישור גישה נכשל).";
+          return;
+        }
+        const data = await res.json();
+
+        document.getElementById("stat-wallets").textContent = data.total_wallets;
+        document.getElementById("stat-referrals").textContent = data.total_referrals;
+        document.getElementById("stat-offers").textContent = data.total_trade_offers;
+        document.getElementById("stat-active-offers").textContent = data.active_trade_offers;
+
+        const tbody = document.getElementById("offers-body");
+        tbody.innerHTML = "";
+        for (const o of data.last_offers) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${o.id}</td>
+            <td>${o.seller_telegram_id}</td>
+            <td>${o.token_symbol}</td>
+            <td>${o.amount}</td>
+            <td>${o.price_bnb}</td>
+            <td>${o.status}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+
+        statsEl.style.display = "block";
+      } catch (e) {
+        console.error(e);
+        errorEl.textContent = "שגיאה פנימית בטעינת הנתונים.";
+      }
+    }
+  </script>
+</body>
+</html>

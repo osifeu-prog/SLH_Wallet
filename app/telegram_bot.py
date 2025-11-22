@@ -24,7 +24,12 @@ router = APIRouter(prefix="/telegram", tags=["telegram"])
 _application: Optional[Application] = None
 
 
-async def _ensure_wallet(telegram_id: str, username: str = "", first_name: str = "", last_name: str = "") -> models.Wallet:
+async def _ensure_wallet(
+    telegram_id: str,
+    username: str = "",
+    first_name: str = "",
+    last_name: str = "",
+) -> models.Wallet:
     db = SessionLocal()
     try:
         wallet = db.get(models.Wallet, telegram_id)
@@ -66,6 +71,36 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await _ensure_wallet(telegram_id, username, first_name, last_name)
 
+    # Referral: /start <referrer_id>
+    referrer_id = None
+    if context.args:
+        raw = context.args[0].strip()
+        if raw and raw != telegram_id:
+            referrer_id = raw
+
+    if referrer_id:
+        db = SessionLocal()
+        try:
+            exists = (
+                db.query(models.Referral)
+                .filter_by(
+                    referrer_telegram_id=referrer_id,
+                    referred_telegram_id=telegram_id,
+                )
+                .first()
+            )
+            if not exists:
+                ref = models.Referral(
+                    referrer_telegram_id=referrer_id,
+                    referred_telegram_id=telegram_id,
+                    reward_amount_slh_ton=0.001,
+                )
+                db.add(ref)
+                db.commit()
+                logger.info("Referral recorded: %s invited %s", referrer_id, telegram_id)
+        finally:
+            db.close()
+
     text_lines = [
         "ברוך הבא ל-SLH Wallet 🚀",
         "",
@@ -77,8 +112,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "/link_bnb <address> - קישור כתובת BNB/SLH_BNB",
         "/link_slh <address> - קישור כתובת SLH_BNB (אם שונה)",
         "/link_slh_ton <address> - קישור כתובת SLH_TON (עתידי)",
-        "/sell <amount> <price_bnb> - פתיחת הצעת מכירה",
+        "/sell <amount> <price_bnb> - פתיחת הצעת מכירה (SLH_BNB)",
         "/market - צפייה בשוק הקהילתי",
+        "/reflink - קישור אישי להזמנת חברים (0.001 SLH_TON לכל מוזמן)",
     ]
     await update.effective_chat.send_message("\n".join(text_lines))
 
@@ -170,7 +206,6 @@ async def cmd_link_bnb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     try:
         wallet = await _ensure_wallet(telegram_id)
         wallet.bnb_address = address
-        db = SessionLocal()
         db.merge(wallet)
         db.commit()
         await update.effective_chat.send_message(f"✅ כתובת BNB עודכנה:\n{address}")
@@ -194,7 +229,6 @@ async def cmd_link_slh(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     try:
         wallet = await _ensure_wallet(telegram_id)
         wallet.slh_address = address
-        db = SessionLocal()
         db.merge(wallet)
         db.commit()
         await update.effective_chat.send_message(f"✅ כתובת SLH_BNB עודכנה:\n{address}")
@@ -218,7 +252,6 @@ async def cmd_link_slh_ton(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     try:
         wallet = await _ensure_wallet(telegram_id)
         wallet.slh_ton_address = address
-        db = SessionLocal()
         db.merge(wallet)
         db.commit()
         await update.effective_chat.send_message(f"✅ כתובת SLH_TON עודכנה:\n{address}")
@@ -265,9 +298,11 @@ async def cmd_sell(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         db.commit()
         db.refresh(offer)
 
+        seller_name = f"@{wallet.username}" if wallet.username else telegram_id
+
         await update.effective_chat.send_message(
             f"✅ נפתחה הצעת מכירה #{offer.id}:\n"
-            f"מוכר: @{wallet.username or telegram_id}\n"
+            f"מוכר: {seller_name}\n"
             f"כמות: {amount} SLH_BNB\n"
             f"מחיר ליחידה: {price_bnb} BNB"
         )
@@ -309,6 +344,24 @@ async def cmd_market(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         db.close()
 
 
+async def cmd_reflink(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    if not user:
+        return
+
+    telegram_id = str(user.id)
+    bot_username = settings.bot_username or "Slh_selha_bot"
+    link = f"https://t.me/{bot_username}?start={telegram_id}"
+
+    text = (
+        "זה הקישור האישי שלך להזמנת חברים ל-SLH Wallet:\n"
+        f"{link}\n\n"
+        "על כל חבר חדש שיפתח ארנק דרך הקישור שלך, תקבל 0.001 SLH_TON "
+        "בספר הפנימי של המערכת (לוגי, לשימוש עתידי באקו-סיסטם שלנו)."
+    )
+    await update.effective_chat.send_message(text)
+
+
 async def get_application() -> Application:
     global _application
     if _application is None:
@@ -325,6 +378,7 @@ async def get_application() -> Application:
         app.add_handler(CommandHandler("link_slh_ton", cmd_link_slh_ton))
         app.add_handler(CommandHandler("sell", cmd_sell))
         app.add_handler(CommandHandler("market", cmd_market))
+        app.add_handler(CommandHandler("reflink", cmd_reflink))
 
         await app.initialize()
         await app.start()
