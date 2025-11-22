@@ -7,6 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .database import Base, engine
 from .db_schema import ensure_schema
+
+# Ensure DB schema (idempotent, safe on each startup)
+ensure_schema()
 from .routers import wallet, trade
 from .telegram_bot import router as telegram_router, get_application
 
