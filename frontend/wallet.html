@@ -1,42 +1,470 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>SLH Wallet – התחברות דרך הבוט</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLH Wallet - חיבור MetaMask</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root {
+            --primary: #f6851b;
+            --primary-hover: #e2761b;
+            --secondary: #2563eb;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg-dark: #050816;
+            --card-bg: #111827;
+            --border: #1f2937;
+            --text-light: #f5f5f5;
+            --text-muted: #9ca3af;
+        }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .wallet-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        .wallet-header {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .wallet-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+        
+        .wallet-header p {
+            margin: 0.5rem 0 0;
+            color: var(--text-muted);
+        }
+        
+        .step {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .step-number {
+            background: var(--primary);
+            color: var(--text-light);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-left: 0.75rem;
+        }
+        
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .metamask-section {
+            text-align: center;
+            padding: 1rem 0;
+        }
+        
+        .metamask-btn {
+            background: var(--primary);
+            color: var(--text-light);
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0.5rem 0;
+            font-weight: 600;
+        }
+        
+        .metamask-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        
+        .metamask-btn:disabled {
+            background: #374151;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .wallet-info {
+            background: #1a2435;
+            padding: 1.25rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            background: #020617;
+            color: var(--text-light);
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .submit-btn {
+            background: var(--secondary);
+            color: var(--text-light);
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .submit-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .submit-btn:disabled {
+            background: #374151;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            display: none;
+            border: 1px solid;
+        }
+        
+        .success {
+            background: #052e16;
+            color: #22c55e;
+            border-color: #166534;
+        }
+        
+        .error {
+            background: #450a0a;
+            color: #ef4444;
+            border-color: #991b1b;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .address-display {
+            background: #020617;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            margin-top: 0.5rem;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .optional-note {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+    </style>
 </head>
-<body class="slh-body">
-  <div class="slh-container slh-card">
-    <h1>SLH Wallet – ארנק הקהילה</h1>
-    <p>
-      מערכת הארנק של SLH עובדת *בלי סיסמאות* ובלי טפסים מיותרים באתר.
-      כל הרישום, הזיהוי והעדכון של כתובות הארנק נעשים דרך בוט הטלגרם בלבד.
-    </p>
+<body>
+    <div class="wallet-container">
+        <div class="wallet-header">
+            <h1>🦊 SLH Wallet - חיבור MetaMask</h1>
+            <p>הארנק שלך, בשליטתך - מחובר ישירות ל-MetaMask</p>
+        </div>
+        
+        <div id="message" class="message"></div>
 
-    <section class="slh-section">
-      <h2>איך מצטרפים?</h2>
-      <ol>
-        <li>פתח את בוט הטלגרם הרשמי של SLH.</li>
-        <li>שלח את הפקודה <code>/start</code>.</li>
-        <li>לאחר מכן שלח <code>/wallet</code> כדי לפתוח את הארנק.</li>
-        <li>עדכן כתובת BNB בעזרת <code>/set_bnb</code>.</li>
-        <li>עדכן כתובת TON בעזרת <code>/set_ton</code>.</li>
-      </ol>
-      <p>לאחר שתשלים את השלבים, תקבל קישור אישי לאזור שלך בבורסה הקהילתית.</p>
-    </section>
+        <!-- שלב 1: חיבור MetaMask -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <h3 class="step-title">חיבור MetaMask</h3>
+            </div>
+            <div class="metamask-section">
+                <p>לחץ כדי לחבר את הארנק שלך מארנק MetaMask</p>
+                <button id="connectMetamask" class="metamask-btn">
+                    🦊 חיבור MetaMask
+                </button>
+                <div id="metamaskStatus" class="wallet-info hidden">
+                    <strong>✅ מחובר בהצלחה!</strong>
+                    <div class="address-display" id="connectedAddress"></div>
+                </div>
+            </div>
+        </div>
 
-    <section class="slh-section">
-      <h2>למה אין טפסים כאן באתר?</h2>
-      <p>
-        כדי להגן על המשתמשים, כל פעולה רגישה נעשית בטלגרם בלבד.
-        האתר משמש כתצוגה בלבד – כרטיס אישי, סטטוס, עסקאות, סטייקינג ועוד.
-      </p>
-    </section>
+        <!-- שלב 2: פרטי טלגרם -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <h3 class="step-title">פרטי טלגרם</h3>
+            </div>
+            <form id="walletForm">
+                <div class="form-group">
+                    <label for="telegram_id">Telegram ID *</label>
+                    <input type="text" id="telegram_id" name="telegram_id" required>
+                </div>
+                <div class="form-group">
+                    <label for="username">שם משתמש בטלגרם</label>
+                    <input type="text" id="username" name="username">
+                    <div class="optional-note">אופציונלי</div>
+                </div>
+                <div class="form-group">
+                    <label for="first_name">שם פרטי</label>
+                    <input type="text" id="first_name" name="first_name">
+                    <div class="optional-note">אופציונלי</div>
+                </div>
+                <div class="form-group">
+                    <label for="last_name">שם משפחה</label>
+                    <input type="text" id="last_name" name="last_name">
+                    <div class="optional-note">אופציונלי</div>
+                </div>
+                
+                <!-- שדות נסתרים שימולאו אוטומטית -->
+                <input type="hidden" id="bnb_address" name="bnb_address">
+                <input type="hidden" id="slh_address" name="slh_address">
+                
+                <button type="submit" id="submitBtn" class="submit-btn" disabled>
+                    💾 השלם רישום ארנק
+                </button>
+            </form>
+        </div>
 
-    <footer class="slh-footer">
-      <p>SLH – Human Capital Protocol · זהות = טלגרם + ארנק · בלי סיסמאות.</p>
-    </footer>
-  </div>
+        <!-- שלב 3: אישורים נוספים -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <h3 class="step-title">אישורים נוספים</h3>
+            </div>
+            <div class="wallet-info">
+                <p><strong>🏦 פרטי בנק:</strong> ניתן להוסיף בהמשך דרך הבוט עם הפקודה <code>/bank</code></p>
+                <p><strong>📎 אישורי העברה:</strong> ניתן להעלות בהמשך דרך הבוט</p>
+                <p><strong>💰 צפייה ביתרות:</strong> השתמש בפקודה <code>/balances</code> בבוט</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // אלמנטים DOM
+        const connectBtn = document.getElementById('connectMetamask');
+        const submitBtn = document.getElementById('submitBtn');
+        const metamaskStatus = document.getElementById('metamaskStatus');
+        const connectedAddress = document.getElementById('connectedAddress');
+        const walletForm = document.getElementById('walletForm');
+        const bnbAddressInput = document.getElementById('bnb_address');
+        const slhAddressInput = document.getElementById('slh_address');
+        const messageDiv = document.getElementById('message');
+
+        // ✅ בדיקה אם MetaMask מותקן
+        function checkMetaMask() {
+            if (typeof window.ethereum === 'undefined') {
+                showMessage(
+                    '❌ MetaMask לא מותקן בדפדפן שלך. ' +
+                    'אנא התקן את MetaMask כדי להמשיך.', 
+                    'error'
+                );
+                connectBtn.disabled = true;
+                connectBtn.textContent = '🦊 MetaMask לא זמין';
+                return false;
+            }
+            return true;
+        }
+
+        // ✅ חיבור ל-MetaMask
+        async function connectMetaMask() {
+            if (!checkMetaMask()) return;
+
+            try {
+                connectBtn.disabled = true;
+                connectBtn.textContent = '🔄 מתחבר...';
+                
+                // בקשת גישה לחשבונות
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                if (accounts.length > 0) {
+                    const account = accounts[0];
+                    
+                    // הצגת הכתובת (מקוצרת)
+                    const shortAddress = `${account.slice(0, 6)}...${account.slice(-4)}`;
+                    connectedAddress.textContent = `כתובת: ${shortAddress}`;
+                    
+                    // מילוי שדות נסתרים
+                    bnbAddressInput.value = account;
+                    slhAddressInput.value = account;
+                    
+                    // הצגת סטטוס
+                    metamaskStatus.classList.remove('hidden');
+                    connectBtn.textContent = '✅ מחובר';
+                    
+                    // הפעלת כפתור השליחה
+                    submitBtn.disabled = false;
+                    
+                    showMessage('✅ MetaMask מחובר בהצלחה! ניתן להשלים את הרישום.', 'success');
+                }
+            } catch (error) {
+                console.error('MetaMask connection error:', error);
+                
+                if (error.code === 4001) {
+                    showMessage('❌ המשתמש דחה את בקשת החיבור.', 'error');
+                } else {
+                    showMessage('❌ שגיאה בחיבור ל-MetaMask. נסה שוב.', 'error');
+                }
+                
+                connectBtn.disabled = false;
+                connectBtn.textContent = '🦊 חיבור MetaMask';
+            }
+        }
+
+        // ✅ שליחת טופס הרישום
+        async function submitWalletForm(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(walletForm);
+            const data = Object.fromEntries(formData.entries());
+            
+            // וידוא שחובר MetaMask
+            if (!bnbAddressInput.value) {
+                showMessage('❌ אנא חבר את MetaMask לפני הרישום.', 'error');
+                return;
+            }
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '🔄 שומר...';
+                
+                const response = await fetch('/api/wallet/register', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('✅ הארנק נרשם בהצלחה! ניתן כעת להשתמש בכל הפיצ׳רים.', 'success');
+                    submitBtn.textContent = '✅ נרשם בהצלחה!';
+                    
+                    // הפניה אוטומטית לאחר 2 שניות
+                    setTimeout(() => {
+                        window.location.href = '/wallet?success=true&telegram_id=' + data.telegram_id;
+                    }, 2000);
+                } else {
+                    throw new Error(result.detail || 'שגיאה לא ידועה');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showMessage(`❌ שגיאה ברישום: ${error.message}`, 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 השלם רישום ארנק';
+            }
+        }
+
+        // ✅ הצגת הודעות
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // ✅ מילוי אוטומטי מפרמטרים ב-URL
+        function fillFromUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            document.getElementById('telegram_id').value = urlParams.get('telegram_id') || '';
+            document.getElementById('username').value = urlParams.get('username') || '';
+            document.getElementById('first_name').value = urlParams.get('first_name') || '';
+            
+            // אם כבר יש פרמטר success, מציג הודעה
+            if (urlParams.get('success') === 'true') {
+                showMessage('✅ הארנק שלך מוכן! השתמש ב-/balances בבוט כדי לראות יתרות.', 'success');
+            }
+        }
+
+        // ✅ האזנה לשינויים בכתובת ב-MetaMask
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    showMessage('🔒 MetaMask נותק. אנא חבר שוב.', 'error');
+                    metamaskStatus.classList.add('hidden');
+                    submitBtn.disabled = true;
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = '🦊 חיבור MetaMask';
+                } else {
+                    // עדכון הכתובת אם השתמש החליף חשבון
+                    const account = accounts[0];
+                    const shortAddress = `${account.slice(0, 6)}...${account.slice(-4)}`;
+                    connectedAddress.textContent = `כתובת: ${shortAddress}`;
+                    bnbAddressInput.value = account;
+                    slhAddressInput.value = account;
+                }
+            });
+        }
+
+        // ✅ אתחול אירועים
+        connectBtn.addEventListener('click', connectMetaMask);
+        walletForm.addEventListener('submit', submitWalletForm);
+
+        // בדיקה ראשונית והגדרות
+        checkMetaMask();
+        fillFromUrlParams();
+    </script>
 </body>
 </html>

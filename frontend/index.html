@@ -2,144 +2,43 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>SLH Wallet 2.0</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="/static/css/style.css">
-  <style>
-    .landing-container {
-      display: flex;
-      min-height: 100vh;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-    }
-    
-    .landing-card {
-      background: #111827;
-      padding: 2.5rem;
-      border-radius: 1rem;
-      max-width: 480px;
-      width: 100%;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-      border: 1px solid #1f2937;
-      text-align: center;
-    }
-    
-    .landing-card h1 {
-      color: #f6851b;
-      margin-bottom: 1rem;
-      font-size: 2rem;
-    }
-    
-    .landing-card p {
-      color: #9ca3af;
-      line-height: 1.6;
-      margin-bottom: 1.5rem;
-    }
-    
-    .btn-primary {
-      display: inline-block;
-      background: #f6851b;
-      color: #050816;
-      padding: 0.75rem 1.5rem;
-      border-radius: 999px;
-      text-decoration: none;
-      font-weight: 600;
-      margin: 0.5rem;
-      transition: all 0.3s ease;
-      border: none;
-      cursor: pointer;
-    }
-    
-    .btn-primary:hover {
-      background: #e2761b;
-      transform: translateY(-2px);
-    }
-    
-    .btn-secondary {
-      display: inline-block;
-      background: #2563eb;
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border-radius: 999px;
-      text-decoration: none;
-      font-weight: 600;
-      margin: 0.5rem;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-secondary:hover {
-      background: #1d4ed8;
-      transform: translateY(-2px);
-    }
-    
-    .link {
-      color: #60a5fa;
-      text-decoration: none;
-      display: block;
-      margin: 0.5rem 0;
-    }
-    
-    .link:hover {
-      color: #38bdf8;
-    }
-    
-    .features {
-      display: grid;
-      gap: 1rem;
-      margin: 2rem 0;
-    }
-    
-    .feature {
-      background: #1a2435;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      border-left: 4px solid #f6851b;
-    }
-  </style>
+  <title>SLH Wallet 2.0 – ארנק הקהילה</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="landing-container">
-    <div class="landing-card">
-      <h1>🦊 SLH Wallet 2.0</h1>
-      <p>
-        ארנק BNB/SLH מתקדם עם חיבור MetaMask, בוט טלגרם וקהילת SLHNET.
-      </p>
-      
-      <div class="features">
-        <div class="feature">
-          <strong>🦊 MetaMask Integration</strong>
-          <p>חיבור ישיר לארנק שלך - ללא צורך בהזנת כתובות ידנית</p>
-        </div>
-        <div class="feature">
-          <strong>🤖 Telegram Bot</strong>
-          <p>ניהול מלא דרך הבוט - יתרות, מסחר ופרטי חשבון</p>
-        </div>
-        <div class="feature">
-          <strong>🏦 Banking Support</strong>
-          <p>הוספת פרטי בנק ואישורי העברה</p>
-        </div>
-      </div>
-      
-      <div>
-        <a class="btn-primary" href="/wallet">
-          🚀 פתיחת ארנק עם MetaMask
-        </a>
-        <br>
-        <a class="btn-secondary" href="https://t.me/Slh_selha_bot" target="_blank">
-          🤖 פתיחת בוט SLH Wallet
-        </a>
-      </div>
-      
-      <div style="margin-top: 2rem;">
-        <a class="link" href="https://t.me/+HIzvM8sEgh1kNWY0" target="_blank">
-          👥 הצטרפות לקהילת העסקים
-        </a>
-        <div style="color: #6b7280; font-size: 0.9rem; margin-top: 1rem;">
-          כבר יש לך ארנק? השתמש ב-/balances בבוט כדי לראות יתרות
-        </div>
-      </div>
-    </div>
-  </div>
+  <main class="page">
+    <header class="hero">
+      <h1>SLH Wallet 2.0</h1>
+      <p>זהות אחת. ארנק אחד. קהילה אחת.</p>
+      <p>אין סיסמאות. אין התחברויות. הכל דרך טלגרם וארנקי הקריפטו שלך.</p>
+      {% if bot_url %}
+      <a class="primary-btn" href="{{ bot_url }}" target="_blank">התחל בוט טלגרם</a>
+      {% endif %}
+      {% if community_link %}
+      <a class="link" href="{{ community_link }}" target="_blank">לקבוצת הקהילה ›</a>
+      {% endif %}
+    </header>
+
+    <section class="section">
+      <h2>איך זה עובד?</h2>
+      <ol>
+        <li>שולחים /start לבוט הטלגרם</li>
+        <li>משלמים 39 ₪ ומקבלים אישור הצטרפות</li>
+        <li>מגדירים כתובת BNB וכתובת TON דרך הבוט</li>
+        <li>מקבלים אזור אישי באתר עם כרטיס SLH ו-QR לשיתוף</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2>מה תקבל?</h2>
+      <ul>
+        <li>כרטיס SLH אישי עם QR</li>
+        <li>אזור אישי לצפייה בנכסים והיסטוריית עסקאות</li>
+        <li>מסחר P2P פנימי וסטייקינג (בשלבים)</li>
+        <li>חיבור מלא לקהילה ולבורסת SLHNET</li>
+      </ul>
+    </section>
+  </main>
 </body>
 </html>

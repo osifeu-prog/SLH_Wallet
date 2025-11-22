@@ -1,76 +1,100 @@
-"""Lightweight schema management for SLH_Wallet.
 
-This module:
-- Creates core tables if they do not exist.
-- Adds critical columns (SLH_TON address, P2P seller/buyer, status) if missing.
-It is idempotent and safe to run on every startup.
-"""
+from __future__ import annotations
 
 import logging
+from textwrap import dedent
+
 from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
-from .database import Base, engine
-
-log = logging.getLogger("slh_wallet.schema")
+logger = logging.getLogger("slh_wallet.db_schema")
 
 
-def ensure_schema() -> None:
-    """Create tables via SQLAlchemy and patch columns via raw SQL.
+DDL_STATEMENTS = [
+    # wallets table
+    dedent(
+        """
+        CREATE TABLE IF NOT EXISTS wallets (
+            telegram_id VARCHAR(64) PRIMARY KEY,
+            username VARCHAR(64),
+            first_name VARCHAR(128),
+            last_name VARCHAR(128),
+            bnb_address VARCHAR(255),
+            slh_address VARCHAR(255),
+            slh_ton_address VARCHAR(255),
+            bank_account_name VARCHAR(255),
+            bank_account_number VARCHAR(64),
+            internal_slh_balance DOUBLE PRECISION DEFAULT 0,
+            internal_slh_locked DOUBLE PRECISION DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """
+    ),
+    # trade_offers table
+    dedent(
+        """
+        CREATE TABLE IF NOT EXISTS trade_offers (
+            id SERIAL PRIMARY KEY,
+            seller_telegram_id VARCHAR(64) NOT NULL,
+            buyer_telegram_id VARCHAR(64),
+            token_symbol VARCHAR(32) NOT NULL DEFAULT 'SLH',
+            amount DOUBLE PRECISION NOT NULL,
+            price_bnb DOUBLE PRECISION NOT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """
+    ),
+    # internal_transfers table
+    dedent(
+        """
+        CREATE TABLE IF NOT EXISTS internal_transfers (
+            id SERIAL PRIMARY KEY,
+            from_telegram_id VARCHAR(64) NOT NULL,
+            to_telegram_id VARCHAR(64) NOT NULL,
+            amount DOUBLE PRECISION NOT NULL,
+            memo VARCHAR(255),
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """
+    ),
+    # staking_positions table
+    dedent(
+        """
+        CREATE TABLE IF NOT EXISTS staking_positions (
+            id SERIAL PRIMARY KEY,
+            telegram_id VARCHAR(64) NOT NULL,
+            amount_locked DOUBLE PRECISION NOT NULL,
+            annual_rate_percent DOUBLE PRECISION NOT NULL DEFAULT 120.0,
+            started_at TIMESTAMPTZ DEFAULT NOW(),
+            unlock_at TIMESTAMPTZ,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE
+        );
+        """
+    ),
+    # Make sure extra columns exist in existing DBs (idempotent)
+    "ALTER TABLE wallets ADD COLUMN IF NOT EXISTS slh_ton_address VARCHAR(255);",
+    "ALTER TABLE wallets ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(255);",
+    "ALTER TABLE wallets ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(64);",
+    "ALTER TABLE wallets ADD COLUMN IF NOT EXISTS internal_slh_balance DOUBLE PRECISION DEFAULT 0;",
+    "ALTER TABLE wallets ADD COLUMN IF NOT EXISTS internal_slh_locked DOUBLE PRECISION DEFAULT 0;",
+    "ALTER TABLE wallets ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();",
+    "ALTER TABLE wallets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();",
+    "ALTER TABLE trade_offers ADD COLUMN IF NOT EXISTS seller_telegram_id VARCHAR(64);",
+    "ALTER TABLE trade_offers ADD COLUMN IF NOT EXISTS buyer_telegram_id VARCHAR(64);",
+    "ALTER TABLE trade_offers ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'ACTIVE';",
+    "ALTER TABLE trade_offers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();",
+]
 
-    Safe to call on every startup.
-    """
-    # 1) Let SQLAlchemy create any missing tables that exist in models.py
-    Base.metadata.create_all(bind=engine)
 
-    # 2) Apply PostgreSQL-specific patch for extra columns we rely on
-    ddl = """-- sql/schema_patch.sql
--- Non-destructive schema patch to align an existing database with the current models.
--- Safe to run multiple times.
-
--- wallets: add SLH_TON address if missing
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'wallets' AND column_name = 'slh_ton_address'
-    ) THEN
-        ALTER TABLE wallets ADD COLUMN slh_ton_address VARCHAR(255);
-    END IF;
-END$$;
-
--- trade_offers: add seller/buyer/status if missing
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'trade_offers' AND column_name = 'seller_telegram_id'
-    ) THEN
-        ALTER TABLE trade_offers ADD COLUMN seller_telegram_id VARCHAR(64);
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'trade_offers' AND column_name = 'buyer_telegram_id'
-    ) THEN
-        ALTER TABLE trade_offers ADD COLUMN buyer_telegram_id VARCHAR(64);
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'trade_offers' AND column_name = 'status'
-    ) THEN
-        ALTER TABLE trade_offers ADD COLUMN status VARCHAR(32) DEFAULT 'ACTIVE';
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'trade_offers' AND column_name = 'updated_at'
-    ) THEN
-        ALTER TABLE trade_offers ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
-    END IF;
-END$$;
-"""
+def ensure_schema(engine: Engine) -> None:
+    logger.info("Ensuring DB schema is up-to-date...")
     with engine.begin() as conn:
-        log.info("Running schema_patch.sql to align database schema…")
-        conn.exec_driver_sql(ddl)
-        log.info("Schema patch completed successfully.")
+        for ddl in DDL_STATEMENTS:
+            try:
+                conn.execute(text(ddl))
+            except Exception as e:  # noqa: BLE001
+                logger.warning("DDL failed (but continuing): %s", e)
+    logger.info("DB schema ensured.")

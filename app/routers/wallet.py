@@ -1,165 +1,176 @@
+
+from __future__ import annotations
+
 import logging
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from .. import models, schemas
+
+from ..config import settings
 from ..database import get_db
-from ..blockchain_service import blockchain_service
+from .. import models, schemas
 
 logger = logging.getLogger("slh_wallet.wallet_router")
 
-router = APIRouter(prefix="/api/wallet", tags=["wallet"])
+router = APIRouter(tags=["wallet"])
 
-@router.post("/register", response_model=schemas.WalletOut)
+templates = Jinja2Templates(directory="frontend")
+
+
+@router.get("/u/{telegram_id}", response_class=HTMLResponse)
+async def personal_hub(
+    request: Request,
+    telegram_id: str = Path(..., description="Telegram ID of the user"),
+    db: Session = Depends(get_db),
+):
+    wallet = db.get(models.Wallet, telegram_id)
+    if not wallet:
+        # Show a simple "not registered" page with hint to use the bot
+        return templates.TemplateResponse(
+            "user_not_found.html",
+            {
+                "request": request,
+                "telegram_id": telegram_id,
+                "bot_url": settings.bot_username and f"https://t.me/{settings.bot_username}" or "",
+            },
+        )
+
+    # Compute QR URL (for now just use /u/{telegram_id})
+    base = settings.frontend_api_base or settings.base_url
+    user_url = f"{base}/u/{telegram_id}"
+
+    return templates.TemplateResponse(
+        "user.html",
+        {
+            "request": request,
+            "wallet": wallet,
+            "user_url": user_url,
+            "community_link": settings.community_link,
+            "slh_token_address": settings.slh_token_address,
+        },
+    )
+
+
+@router.post("/api/wallet/register", response_model=schemas.WalletOut)
 def register_wallet(
     payload: schemas.WalletRegisterIn,
     db: Session = Depends(get_db),
 ):
-    try:
-        # ✅ ולידציה - חובה Telegram ID
-        if not payload.telegram_id or len(payload.telegram_id.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Telegram ID is required")
-        
-        # ✅ ולידציה - אורך כתובות
-        if payload.bnb_address and len(payload.bnb_address) > 200:
-            raise HTTPException(status_code=400, detail="BNB address too long")
-        
-        if payload.slh_address and len(payload.slh_address) > 200:
-            raise HTTPException(status_code=400, detail="SLH address too long")
-        
-        if payload.bank_account_number and len(payload.bank_account_number) > 100:
-            raise HTTPException(status_code=400, detail="Bank account number too long")
+    """
+    Upsert wallet record.
+    This endpoint is intended to be called *from the Telegram bot only*.
 
-        # ✅ חיפוש או יצירת ארנק
-        wallet = db.get(models.Wallet, payload.telegram_id)
+    If wallet exists -> update fields that were provided.
+    If not -> create new wallet row.
+    """
+    logger.info("Register/update wallet %s", payload.telegram_id)
 
-        if not wallet:
-            wallet = models.Wallet(telegram_id=payload.telegram_id)
-            db.add(wallet)
-            logger.info("Created new wallet for Telegram ID: %s", payload.telegram_id)
-        else:
-            logger.info("Updating existing wallet for Telegram ID: %s", payload.telegram_id)
+    wallet = db.get(models.Wallet, payload.telegram_id)
+    created = False
+    if not wallet:
+        wallet = models.Wallet(telegram_id=payload.telegram_id)
+        created = True
 
-        # ✅ עדכון כל השדות
-        update_fields = [
-            'username', 'first_name', 'last_name', 
-            'bnb_address', 'slh_address',
-            'bank_account_number', 'bank_name', 'bank_branch'
-        ]
-        
-        for field in update_fields:
-            value = getattr(payload, field)
-            if value is not None:
-                setattr(wallet, field, value)
+    # update basic identity
+    wallet.username = payload.username or wallet.username
+    wallet.first_name = payload.first_name or wallet.first_name
+    wallet.last_name = payload.last_name or wallet.last_name
 
-        db.commit()
-        db.refresh(wallet)
-        
-        logger.info("Wallet saved successfully for Telegram ID: %s", payload.telegram_id)
-        return wallet
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Error saving wallet for Telegram ID %s: %s", payload.telegram_id, str(e))
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Internal server error saving wallet")
+    # update addresses if provided
+    if payload.bnb_address is not None:
+        wallet.bnb_address = payload.bnb_address
+    if payload.slh_address is not None:
+        wallet.slh_address = payload.slh_address
+    if payload.slh_ton_address is not None:
+        wallet.slh_ton_address = payload.slh_ton_address
 
-@router.get("/by-telegram/{telegram_id}", response_model=schemas.WalletOut)
+    # bank details
+    if payload.bank_account_name is not None:
+        wallet.bank_account_name = payload.bank_account_name
+    if payload.bank_account_number is not None:
+        wallet.bank_account_number = payload.bank_account_number
+
+    if created:
+        db.add(wallet)
+
+    db.commit()
+    db.refresh(wallet)
+    return wallet
+
+
+@router.get("/api/wallet/by-telegram/{telegram_id}", response_model=schemas.WalletOut)
 def get_wallet_by_telegram(
     telegram_id: str,
     db: Session = Depends(get_db),
 ):
-    if not telegram_id or len(telegram_id) > 50:
-        raise HTTPException(status_code=400, detail="Invalid telegram ID")
-        
     wallet = db.get(models.Wallet, telegram_id)
     if not wallet:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Wallet not found")
     return wallet
 
-@router.get("/exists/{telegram_id}")
-def check_wallet_exists(
+
+@router.get("/api/wallet/{telegram_id}/balances", response_model=schemas.WalletBalancesOut)
+def get_balances(
     telegram_id: str,
     db: Session = Depends(get_db),
 ):
-    if not telegram_id or len(telegram_id) > 50:
-        return {"exists": False}
-        
-    wallet = db.get(models.Wallet, telegram_id)
-    return {"exists": wallet is not None}
-
-@router.get("/{telegram_id}/balances")
-async def get_wallet_balances(
-    telegram_id: str,
-    db: Session = Depends(get_db),
-):
-    if not telegram_id or len(telegram_id) > 50:
-        raise HTTPException(status_code=400, detail="Invalid telegram ID")
-        
     wallet = db.get(models.Wallet, telegram_id)
     if not wallet:
-        raise HTTPException(status_code=404, detail="Wallet not found")
-    
-    bnb_address = wallet.bnb_address or ""
-    slh_address = wallet.slh_address or wallet.bnb_address or ""
-    
-    try:
-        balances = await blockchain_service.get_balances(bnb_address, slh_address)
-        
-        return {
-            "telegram_id": telegram_id,
-            "bnb_balance": balances["bnb"],
-            "slh_balance": balances["slh"],
-            "bnb_address": bnb_address,
-            "slh_address": slh_address,
-            "success": True
-        }
-    except Exception as e:
-        logger.error("Error getting balances for %s: %s", telegram_id, e)
-        raise HTTPException(status_code=500, detail="Error fetching blockchain data")
+        return schemas.WalletBalancesOut(success=False)
 
-@router.post("/upload-transfer-proof")
-async def upload_transfer_proof(
-    file: UploadFile = File(...),
-    telegram_id: str = Form(...),
-    description: str = Form(None),
-    db: Session = Depends(get_db)
-):
-    wallet = db.get(models.Wallet, telegram_id)
-    if not wallet:
-        raise HTTPException(status_code=404, detail="Wallet not found")
-    
-    try:
-        # ✅ כאן תוסיף לוגיקה אמיתית לשמירת הקובץ
-        file_location = f"transfer_proofs/{telegram_id}_{file.filename}"
-        
-        return {
-            "filename": file.filename,
-            "telegram_id": telegram_id,
-            "description": description,
-            "status": "uploaded",
-            "message": "File uploaded successfully - under review"
-        }
-    except Exception as e:
-        logger.error("Error uploading file for %s: %s", telegram_id, e)
-        raise HTTPException(status_code=500, detail="Error uploading file")
+    # For now we keep on-chain queries simple / optional –
+    # if we don't have BscScan API key, just return 0 balances.
+    bnb_balance = 0.0
+    slh_onchain = 0.0
 
-@router.get("/{telegram_id}/details")
-def get_wallet_details(
-    telegram_id: str,
-    db: Session = Depends(get_db),
+    # TODO: plug real BNB/SLH/Ton queries via BscScan / TON API if keys exist
+
+    total_slh = wallet.internal_slh_balance + slh_onchain
+
+    return schemas.WalletBalancesOut(
+        success=True,
+        bnb_address=wallet.bnb_address,
+        slh_address=wallet.slh_address,
+        slh_ton_address=wallet.slh_ton_address,
+        internal_slh_balance=wallet.internal_slh_balance,
+        internal_slh_locked=wallet.internal_slh_locked,
+        bnb_balance=bnb_balance,
+        slh_balance_onchain=slh_onchain,
+        slh_balance_total=total_slh,
+    )
+
+
+@router.get("/wallet", response_class=HTMLResponse)
+async def legacy_wallet_redirect(
+    request: Request,
+    telegramid: str | None = None,
+    telegram_id: str | None = None,
 ):
-    """✅ endpoint חדש - מחזיר את כל פרטי הארנק"""
-    if not telegram_id or len(telegram_id) > 50:
-        raise HTTPException(status_code=400, detail="Invalid telegram ID")
-        
-    wallet = db.get(models.Wallet, telegram_id)
-    if not wallet:
-        raise HTTPException(status_code=404, detail="Wallet not found")
-    
-    return {
-        "wallet": schemas.WalletOut.from_orm(wallet),
-        "has_metamask": bool(wallet.bnb_address),
-        "has_bank_info": bool(wallet.bank_account_number),
-        "registration_date": wallet.created_at
-    }
+    """
+    Legacy /wallet endpoint.
+    If a telegram id is provided, redirect the user to /u/{telegram_id}.
+    Otherwise show a simple info page asking to start from the bot.
+    """
+    tid = telegram_id or telegramid
+    if tid:
+        base = settings.frontend_api_base or settings.base_url
+        # Frontend/JS can redirect, here we show a minimal page with link
+        return templates.TemplateResponse(
+            "wallet_redirect.html",
+            {
+                "request": request,
+                "user_url": f"{base}/u/{tid}",
+                "telegram_id": tid,
+            },
+        )
+
+    return templates.TemplateResponse(
+        "wallet_ask_telegram.html",
+        {
+            "request": request,
+            "bot_url": settings.bot_username and f"https://t.me/{settings.bot_username}" or "",
+        },
+    )
