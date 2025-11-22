@@ -1,15 +1,12 @@
 import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .database import Base, engine
 from .db_schema import ensure_schema
-
-# Ensure DB schema (idempotent, safe on each startup)
-ensure_schema()
 from .routers import wallet, trade
 from .telegram_bot import router as telegram_router, get_application
 
@@ -118,7 +115,17 @@ app.mount(
 
 
 @app.get("/wallet", response_class=HTMLResponse)
-async def wallet_page():
+async def wallet_page(request: Request):
+    """Legacy entry point from the bot.
+
+    אם מגיעים עם פרמטר telegramid – מפנים לאזור האישי החדש /u/{telegram_id}.
+    אחרת מציגים דף נחיתה כללי.
+    """
+    telegram_id = request.query_params.get("telegramid") or request.query_params.get("telegram_id")
+    if telegram_id:
+        # הפניה רכה לאזור האישי
+        return RedirectResponse(url=f"/u/{telegram_id}", status_code=307)
+    # כניסה ישירה – מציגים את דף הלימוד / ארנק כללי
     return FileResponse("frontend/wallet.html")
 
 
@@ -126,6 +133,135 @@ async def wallet_page():
 async def landing_page():
     return FileResponse("frontend/index.html")
 
+
+
+from .database import SessionLocal
+from . import models, blockchain_service
+
+
+@app.get("/u/{telegram_id}", response_class=HTMLResponse)
+async def user_hub(telegram_id: str):
+    """אזור אישי של משתמש – מוצג לקריאה בלבד.
+
+    ✳ זהות מבוססת Telegram ID + כתובות ארנק.
+    ✳ אין הקלדה של סיסמאות או פרטים רגישים באתר – הכול נעשה דרך הבוט.
+    """
+    db = SessionLocal()
+    try:
+        wallet = db.get(models.Wallet, telegram_id)
+    finally:
+        db.close()
+
+    if not wallet:
+        html = f"""<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>SLH Wallet – לא נמצא ארנק</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body class="slh-body">
+  <div class="slh-container">
+    <h1>SLH Wallet</h1>
+    <p>לא נמצא ארנק עבור Telegram ID: <strong>{telegram_id}</strong>.</p>
+    <p>כדי לפתוח ארנק, חזור לבוט הרשמי והרץ את הפקודה <code>/wallet</code>.</p>
+    <p><a href="{settings.frontend_bot_url}" target="_blank">פתיחת הבוט בטלגרם</a></p>
+  </div>
+</body>
+</html>"""
+        return HTMLResponse(content=html)
+
+    # מנסים להביא יתרות BNB/SLH מהרשת
+    balances = None
+    try:
+        if wallet.bnb_address:
+            balances = await blockchain_service.get_balances(
+                wallet.bnb_address,
+                wallet.slh_address or wallet.bnb_address,
+            )
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Failed to fetch blockchain balances for %s: %s", telegram_id, e)
+        balances = None
+
+    bnb_balance = balances["bnb"] if balances else None
+    slh_balance = balances["slh"] if balances else None
+
+    # URL לכרטיס האישי / הזמנת חבר
+    invite_url = f"{settings.frontend_bot_url}?start=ref_{telegram_id}"
+
+    html = f"""<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>SLH Wallet – האזור האישי</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+</head>
+<body class="slh-body">
+  <div class="slh-container slh-card">
+    <h1>הכרטיס הדיגיטלי של הקהילה – SLH</h1>
+    <p>זהו האזור האישי שלך במערכת. כל הניהול נעשה דרך הבוט – האתר מציג עבורך את המצב.</p>
+
+    <section class="slh-section">
+      <h2>פרטי משתמש</h2>
+      <ul>
+        <li><strong>Telegram ID:</strong> {wallet.telegram_id}</li>
+        <li><strong>שם משתמש:</strong> @{wallet.username or ""}</li>
+        <li><strong>שם:</strong> {wallet.first_name or ""} {wallet.last_name or ""}</li>
+      </ul>
+    </section>
+
+    <section class="slh-section">
+      <h2>כתובות ארנק</h2>
+      <ul>
+        <li><strong>BNB / BSC:</strong> {wallet.bnb_address or "עדיין לא הוגדר"}</li>
+        <li><strong>SLH על BNB:</strong> {wallet.slh_address or wallet.bnb_address or "עדיין לא הוגדר"}</li>
+        <li><strong>SLH על TON:</strong> {wallet.slh_ton_address or "עדיין לא הוגדר"}</li>
+      </ul>
+      <p>כדי לעדכן כתובות ארנק, חזור לבוט והשתמש בפקודות /set_bnb ו-/set_ton.</p>
+    </section>
+
+    <section class="slh-section">
+      <h2>יתרות (תצוגה בלבד)</h2>
+      <ul>
+        <li><strong>BNB ברשת BSC:</strong> {bnb_balance if bnb_balance is not None else "נדרש סנכרון"}</li>
+        <li><strong>SLH על BNB:</strong> {slh_balance if slh_balance is not None else "נדרש סנכרון"}</li>
+        <li><strong>SLH פנימי (לגרעין הכלכלי):</strong> יוצג בהמשך</li>
+      </ul>
+    </section>
+
+    <section class="slh-section slh-card qr-card">
+      <h2>קישור ו-QR לשיתוף</h2>
+      <p>זהו קישור ההפניה האישי שלך. חברים שייכנסו דרכו יזוהו כשייכים אליך.</p>
+      <p><a href="{invite_url}" target="_blank">{invite_url}</a></p>
+      <canvas id="qr"></canvas>
+      <script>
+        (function() {{
+          var qr = new QRious({{
+            element: document.getElementById('qr'),
+            value: '{invite_url}',
+            size: 180
+          }});
+        }})();
+      </script>
+    </section>
+
+    <section class="slh-section">
+      <h2>ניהול מתקדם</h2>
+      <ul>
+        <li>לניהול פרטי בנק: השתמש בפקודה <code>/bank</code> בבוט.</li>
+        <li>לצפייה ביתרות פנימיות והיסטוריית עסקאות: <code>/balances</code> (בקרוב גרסת אתר מלאה).</li>
+        <li>להצטרפות לקבוצת הבורסה והקהילה: <a href="{settings.community_link}" target="_blank">פתיחת הקבוצה</a></li>
+      </ul>
+    </section>
+
+    <footer class="slh-footer">
+      <p>SLH – Human Capital Protocol · אין סיסמאות, אין טפסים מיותרים · זהות = ארנק + טלגרם.</p>
+    </footer>
+  </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html)
 
 app.include_router(wallet.router)
 app.include_router(trade.router)

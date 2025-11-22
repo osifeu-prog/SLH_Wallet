@@ -36,6 +36,8 @@ async def _build_application() -> Application:
         app.add_handler(CommandHandler("wallet", cmd_wallet))
         app.add_handler(CommandHandler("balances", cmd_balances))
         app.add_handler(CommandHandler("bank", cmd_bank))
+        app.add_handler(CommandHandler("set_bnb", cmd_set_bnb))
+        app.add_handler(CommandHandler("set_ton", cmd_set_ton))
         
         return app
     except Exception as e:
@@ -79,39 +81,141 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.error("Error in /start command: %s", e)
 
 
+
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """נקודת הכניסה לניהול הארנק דרך הבוט.
+
+    ✳ פותח/מעדכן רשומת Wallet בטבלה
+    ✳ מציג למשתמש קישור לאזור האישי באתר (/u/{telegram_id})
+    ✳ מסביר איך לעדכן כתובות BNB ו-TON
+    """
     try:
         user = update.effective_user
         if not user:
             return
-            
+
         logger.info("BOT /wallet from @%s(%s)", user.username, user.id)
 
-        base = settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
-        url = (
-            f"{base}/wallet"
-            f"?telegram_id={user.id}"
-            f"&username={user.username or ''}"
-            f"&first_name={user.first_name or ''}"
+        # מוודא שקיימת רשומת ארנק בסיסית
+        await _ensure_wallet(
+            telegram_id=str(user.id),
+            username=user.username or "",
+            first_name=user.first_name or "",
+            last_name=user.last_name or "",
         )
 
+        base = settings.frontend_api_base or settings.base_url or "https://thin-charlot-osifungar-d382d3c9.koyeb.app"
+        hub_url = f"{base}/u/{user.id}"
+
         text = (
-            "📲 **התחל כאן עם הארנק שלך:**\n\n"
-            "המערכת החדשה משתמשת ב-MetaMask שלך!\n\n"
-            "🦊 **איך זה עובד:**\n"
-            "1. לחץ על הקישור למטה\n"  
-            "2. חבר את MetaMask שלך\n"
-            "3. הכתובת שלך תיכנס אוטומטית\n"
-            "4. השלם את פרטי הטלגרם\n\n"
-            "🚀 **התחל כאן:**\n"
-            f"➡️ {url}\n\n"
-            "*אין צebab להזין כתובות ידנית - הכל אוטומטי!*"
+            "📲 *הארנק שלך במערכת SLH מוכן!*
+
+"
+            "אנחנו לא שומרים סיסמאות ולא מבקשים רישום באתר.
+"
+            "זהותך במערכת = Telegram + כתובות ארנק בלבד.
+
+"
+            "🔐 *מה עכשיו?*
+"
+            "1. שלח לי את כתובת ה־BNB שלך עם הפקודה:
+"
+            "   `/set_bnb <כתובת_BNB>`
+"
+            "2. שלח את כתובת ה־TON שלך עם הפקודה:
+"
+            "   `/set_ton <כתובת_TON>`
+
+"
+            "לאחר העדכון, האזור האישי שלך יציע תצוגה מלאה של הנכסים.
+
+"
+            "🧾 *האזור האישי שלך בבורסה הקהילתית:*
+"
+            f"➡️ {hub_url}
+
+"
+            "כל פעולה רגישה (סטייקינג, ניהול בנק, משיכות) מתבצעת *רק כאן בבוט*."
         )
 
         await update.effective_chat.send_message(text, parse_mode='Markdown')
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Error in /wallet command: %s", e)
 
+async def cmd_set_bnb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """עדכון כתובת BNB של המשתמש דרך הבוט.
+
+    שימוש: /set_bnb <כתובת_BNB>
+    """
+    user = update.effective_user
+    if not user:
+        return
+
+    if not context.args:
+        await update.effective_chat.send_message("שימוש: /set_bnb <כתובת_BNB>")
+        return
+
+    address = context.args[0].strip()
+    # ולידציה בסיסית בלבד – לא חוסמת שימוש מתקדם
+    if not address.startswith("0x") or len(address) < 30:
+        await update.effective_chat.send_message("הכתובת ששלחת לא נראית כמו כתובת BNB תקינה.")
+        return
+
+    session = SessionLocal()
+    try:
+        wallet = session.get(models.Wallet, str(user.id))
+        if not wallet:
+            wallet = models.Wallet(
+                telegram_id=str(user.id),
+                username=user.username or "",
+                first_name=user.first_name or "",
+                last_name=user.last_name or "",
+                bnb_address=address,
+            )
+            session.add(wallet)
+        else:
+            wallet.bnb_address = address
+        session.commit()
+    finally:
+        session.close()
+
+    await update.effective_chat.send_message("✅ כתובת ה-BNB שלך עודכנה בהצלחה במערכת.")
+
+
+async def cmd_set_ton(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """עדכון כתובת TON של המשתמש דרך הבוט.
+
+    שימוש: /set_ton <כתובת_TON>
+    """
+    user = update.effective_user
+    if not user:
+        return
+
+    if not context.args:
+        await update.effective_chat.send_message("שימוש: /set_ton <כתובת_TON>")
+        return
+
+    address = " ".join(context.args).strip()
+
+    session = SessionLocal()
+    try:
+        wallet = session.get(models.Wallet, str(user.id))
+        if not wallet:
+            wallet = models.Wallet(
+                telegram_id=str(user.id),
+                username=user.username or "",
+                first_name=user.first_name or "",
+                last_name=user.last_name or "",
+                slh_ton_address=address,
+            )
+            session.add(wallet)
+        else:
+            wallet.slh_ton_address = address
+        session.commit()
+    finally:
+        session.close()
+
+    await update.effective_chat.send_message("✅ כתובת ה-TON שלך עודכנה בהצלחה במערכת.")
 
 async def cmd_bank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:

@@ -10,6 +10,7 @@ class WalletRegisterIn(BaseModel):
     last_name: Optional[str] = Field(None, max_length=100)  # ✅ שם משפחה חדש
     bnb_address: Optional[str] = Field(None, max_length=200)
     slh_address: Optional[str] = Field(None, max_length=200)
+    slh_ton_address: Optional[str] = Field(None, max_length=200)  # ✅ TON wallet for SLH
     
     # ✅ פרטי בנק חדשים
     bank_account_number: Optional[str] = Field(None, max_length=100)

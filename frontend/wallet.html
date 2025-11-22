@@ -2,331 +2,41 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>SLH Wallet – פרופיל ארנק קהילתי</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SLH Wallet – התחברות דרך הבוט</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="/static/css/style.css" />
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #0f172a 0, #020617 50%, #000 100%);
-      color: #e5e7eb;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .page {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 1.5rem;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.4);
-      padding: 0.25rem 0.9rem;
-      font-size: 0.8rem;
-      color: #e5e7eb;
-      background: linear-gradient(90deg, rgba(15,118,110,0.3), rgba(30,64,175,0.3));
-    }
-    .badge span {
-      font-size: 1.1rem;
-    }
-    h1 {
-      font-size: 1.9rem;
-      margin: 0.7rem 0 0.3rem;
-    }
-    h2 {
-      font-size: 1.2rem;
-      margin: 1.3rem 0 0.4rem;
-    }
-    p {
-      margin: 0.3rem 0 0.3rem;
-      color: #cbd5f5;
-      line-height: 1.5;
-    }
-    .subtitle {
-      color: #9ca3af;
-      margin-bottom: 1.2rem;
-    }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
-      gap: 1.5rem;
-    }
-    .card {
-      border-radius: 1.1rem;
-      border: 1px solid rgba(148,163,184,0.35);
-      background: radial-gradient(circle at top left, rgba(56,189,248,0.08), rgba(15,23,42,0.96));
-      padding: 1rem 1.2rem;
-      backdrop-filter: blur(10px);
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-    .chip {
-      font-size: 0.75rem;
-      padding: 0.15rem 0.6rem;
-      border-radius: 999px;
-      background: rgba(15,118,110,0.2);
-      color: #6ee7b7;
-      border: 1px solid rgba(45,212,191,0.4);
-    }
-    .field-row {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 0.55rem;
-    }
-    .field-label {
-      font-size: 0.75rem;
-      color: #9ca3af;
-      margin-bottom: 0.15rem;
-    }
-    .field-value-row {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .field-value {
-      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.82rem;
-      color: #e5e7eb;
-      word-break: break-all;
-    }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.12rem 0.55rem;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.7);
-      border: 1px solid rgba(148,163,184,0.4);
-      font-size: 0.7rem;
-    }
-    .copy-btn {
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.5);
-      background: rgba(15,23,42,0.9);
-      color: #e5e7eb;
-      font-size: 0.7rem;
-      padding: 0.18rem 0.6rem;
-      cursor: pointer;
-    }
-    .copy-btn:hover {
-      border-color: #38bdf8;
-    }
-    .muted {
-      font-size: 0.75rem;
-      color: #9ca3af;
-    }
-    .steps {
-      counter-reset: step;
-      display: flex;
-      flex-direction: column;
-      gap: 0.65rem;
-      margin-top: 0.5rem;
-    }
-    .step {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      font-size: 0.9rem;
-    }
-    .step::before {
-      counter-increment: step;
-      content: counter(step);
-      width: 1.4rem;
-      height: 1.4rem;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #22c55e, #38bdf8);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      color: #020617;
-      margin-top: 0.07rem;
-      flex-shrink: 0;
-    }
-    .tagline {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.8rem;
-      color: #93c5fd;
-      margin-top: 0.4rem;
-    }
-    .tag-dot {
-      width: 0.4rem;
-      height: 0.4rem;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
-    }
-    a {
-      color: #38bdf8;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    @media (max-width: 800px) {
-      .layout {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-  </style>
 </head>
-<body>
-  <div class="page">
-    <div class="badge">
-      <span>🜚</span>
-      SLH Wallet · זהות קהילתית על בסיס ארנק
-    </div>
-    <h1>הארנק שלך, הזהות שלך ב-SLHNET</h1>
-    <p class="subtitle">
-      ניהול הארנק נעשה דרך בוט הטלגרם. הדף הזה מציג פרופיל ציבורי וכתובות ארנק שלך במערכת.
+<body class="slh-body">
+  <div class="slh-container slh-card">
+    <h1>SLH Wallet – ארנק הקהילה</h1>
+    <p>
+      מערכת הארנק של SLH עובדת *בלי סיסמאות* ובלי טפסים מיותרים באתר.
+      כל הרישום, הזיהוי והעדכון של כתובות הארנק נעשים דרך בוט הטלגרם בלבד.
     </p>
 
-    <div class="layout">
-      <section class="card" id="wallet-card">
-        <div class="card-header">
-          <div>
-            <h2>פרופיל ארנק</h2>
-            <p class="muted" id="wallet-status">
-              טוען נתוני ארנק...
-            </p>
-          </div>
-          <span class="chip">מחובר דרך Telegram Bot</span>
-        </div>
+    <section class="slh-section">
+      <h2>איך מצטרפים?</h2>
+      <ol>
+        <li>פתח את בוט הטלגרם הרשמי של SLH.</li>
+        <li>שלח את הפקודה <code>/start</code>.</li>
+        <li>לאחר מכן שלח <code>/wallet</code> כדי לפתוח את הארנק.</li>
+        <li>עדכן כתובת BNB בעזרת <code>/set_bnb</code>.</li>
+        <li>עדכן כתובת TON בעזרת <code>/set_ton</code>.</li>
+      </ol>
+      <p>לאחר שתשלים את השלבים, תקבל קישור אישי לאזור שלך בבורסה הקהילתית.</p>
+    </section>
 
-        <div id="wallet-fields" style="display:none">
-          <div class="field-row">
-            <div class="field-label">Telegram ID</div>
-            <div class="field-value-row">
-              <div class="field-value" id="field-telegram-id"></div>
-            </div>
-          </div>
+    <section class="slh-section">
+      <h2>למה אין טפסים כאן באתר?</h2>
+      <p>
+        כדי להגן על המשתמשים, כל פעולה רגישה נעשית בטלגרם בלבד.
+        האתר משמש כתצוגה בלבד – כרטיס אישי, סטטוס, עסקאות, סטייקינג ועוד.
+      </p>
+    </section>
 
-          <div class="field-row">
-            <div class="field-label">שם משתמש</div>
-            <div class="field-value-row">
-              <div class="field-value" id="field-username"></div>
-            </div>
-          </div>
-
-          <div class="field-row">
-            <div class="field-label">כתובת BNB / SLH_BNB</div>
-            <div class="field-value-row">
-              <div class="field-value" id="field-bnb"></div>
-              <button class="copy-btn" data-copy-target="field-bnb">העתק</button>
-            </div>
-          </div>
-
-          <div class="field-row">
-            <div class="field-label">כתובת SLH_TON (אופציונלי)</div>
-            <div class="field-value-row">
-              <div class="field-value" id="field-slh-ton"></div>
-            </div>
-            <p class="muted">
-              הזנת כתובת SLH_TON מתבצעת דרך הבוט, ותאפשר קבלת ג'טונים בעתיד לפי מודל ההנפקה.
-            </p>
-          </div>
-
-          <p class="muted">
-            שינוי כתובות או פרטים נוספים מבוצע <strong>אך ורק</strong> דרך בוט הטלגרם לצורך אבטחה ושקיפות.
-          </p>
-        </div>
-      </section>
-
-      <aside class="card">
-        <h2>איך זה עובד בפועל?</h2>
-        <div class="steps">
-          <div class="step">
-            <div>
-              פותחים ארנק בבוט <strong>@Slh_selha_bot</strong> עם הפקודה <code>/start</code>.
-            </div>
-          </div>
-          <div class="step">
-            <div>
-              הבוט יוצר עבורך רשומת ארנק במערכת לפי Telegram ID וכתובות ארנק שתגדיר.
-            </div>
-          </div>
-          <div class="step">
-            <div>
-              דרך הפקודות <code>/wallet</code>, <code>/balances</code>, <code>/bank</code> אתה מנהל את כל ההגדרות. האתר משמש לתצוגה, שוק P2P וקהילה.
-            </div>
-          </div>
-        </div>
-        <p class="tagline">
-          <span class="tag-dot"></span>
-          SLH כיחידת ערך, הצבעת אמון וכלי לבניית כלכלה קהילתית חכמה.
-        </p>
-        <p class="muted" style="margin-top:0.8rem;">
-          אל דאגה – גם אם הגעת לכאן בלי פרמטרים, תוכל תמיד להתחיל מתוך הבוט ולהגיע לדף הזה דרך הקישור האישי שתקבל.
-        </p>
-      </aside>
-    </div>
+    <footer class="slh-footer">
+      <p>SLH – Human Capital Protocol · זהות = טלגרם + ארנק · בלי סיסמאות.</p>
+    </footer>
   </div>
-
-  <script>
-    function getQueryParam(name) {
-      const params = new URLSearchParams(window.location.search);
-      return params.get(name) || params.get(name.toLowerCase()) || params.get(name.toUpperCase());
-    }
-
-    async function loadWallet() {
-      const telegramId = getQueryParam("telegram_id") || getQueryParam("telegramid");
-      const statusEl = document.getElementById("wallet-status");
-      const fieldsEl = document.getElementById("wallet-fields");
-
-      if (!telegramId) {
-        statusEl.textContent = "לא נמצא Telegram ID בכתובת. גש לבוט וקבל קישור אישי מחדש.";
-        return;
-      }
-
-      statusEl.textContent = "טוען פרופיל עבור " + telegramId + "...";
-
-      try {
-        const res = await fetch(`/api/wallet/by-telegram/${encodeURIComponent(telegramId)}`);
-        if (!res.ok) {
-          throw new Error("HTTP " + res.status);
-        }
-        const data = await res.json();
-
-        document.getElementById("field-telegram-id").textContent = data.telegram_id || telegramId;
-        document.getElementById("field-username").textContent = data.username || "—";
-        document.getElementById("field-bnb").textContent = data.bnb_address || data.slh_address || "לא הוגדרה עדיין";
-        document.getElementById("field-slh-ton").textContent = data.slh_ton_address || "טרם הוגדרה";
-
-        statusEl.textContent = "הארנק נטען בהצלחה.";
-        fieldsEl.style.display = "block";
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "שגיאה בטעינת הארנק. נסה שוב מתוך הקישור שבבוט.";
-      }
-    }
-
-    document.addEventListener("click", (ev) => {
-      const btn = ev.target.closest(".copy-btn");
-      if (!btn) return;
-      const targetId = btn.getAttribute("data-copy-target");
-      const el = document.getElementById(targetId);
-      if (!el) return;
-      const text = el.textContent.trim();
-      if (!text) return;
-
-      navigator.clipboard.writeText(text).then(() => {
-        const prev = btn.textContent;
-        btn.textContent = "הועתק ✔";
-        setTimeout(() => (btn.textContent = prev), 1200);
-      }).catch(() => {});
-    });
-
-    loadWallet();
-  </script>
 </body>
 </html>
