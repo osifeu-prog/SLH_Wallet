@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang=\"he\" dir=\"rtl\">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset=\"UTF-8\" />
   <title>SLH Wallet – שוק קהילתי למטבעות SLH / BNB</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />
   <!-- שמרנו על החיבור ל-CSS הקיים בפרויקט -->
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel=\"stylesheet\" href=\"/static/css/style.css\">
   <style>
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;
       background: #0b1220;
       color: #e5e7eb;
     }
@@ -243,7 +243,7 @@
       background: rgba(15, 23, 42, 0.9);
     }
 
-    table.market-table tbody tr:last-child td {
+    table.market-table tbody tr:last-child<td> {
       border-bottom: none;
     }
 
@@ -293,29 +293,29 @@
   </style>
 </head>
 <body>
-  <div class="landing-container">
-    <div class="landing-layout">
+  <div class=\"landing-container\">
+    <div class=\"landing-layout\">
       <!-- צד ימין – הסבר ופעולות בטלגרם -->
-      <section class="hero-card">
-        <div class="hero-chip">
+      <section class=\"hero-card\">
+        <div class=\"hero-chip\">
           <span>SLH Wallet 2.0</span>
           •
           <span>ארנק קהילתי + שוק מבוזר</span>
         </div>
 
-        <h1 class="hero-title">
+        <h1 class=\"hero-title\">
           ארנק טלגרם קהילתי + בורסה חברתית ל-SLH / BNB
         </h1>
 
-        <p class="hero-subtitle">
+        <p class=\"hero-subtitle\">
           כל חבר קהילה פותח ארנק דרך הבוט בטלגרם, מחזיק ומנהל את ה-SLH וה-BNB שלו,
           ויכול לפתוח הצעות מכירה בשוק הקהילתי. הדף הזה מרכז את ההצעות הפעילות
           כדי שכולם יוכלו לראות מי מוכר, כמה ובאיזה מחיר.
         </p>
 
-        <ul class="steps-list">
+        <ul class=\"steps-list\">
           <li>
-            <span class="bullet">1</span>
+            <span class=\"bullet\">1</span>
             <div>
               <strong>פותחים ארנק דרך הבוט בטלגרם</strong><br>
               נכנסים לבוט <code>@Slh_selha_bot</code>, שולחים <code>/start</code> ואז
@@ -323,7 +323,7 @@
             </div>
           </li>
           <li>
-            <span class="bullet">2</span>
+            <span class=\"bullet\">2</span>
             <div>
               <strong>פותחים הצעת מכירה</strong><br>
               מתוך הבוט שולחים לדוגמה:
@@ -332,7 +332,7 @@
             </div>
           </li>
           <li>
-            <span class="bullet">3</span>
+            <span class=\"bullet\">3</span>
             <div>
               <strong>רואים את השוק ופונים למוכרים</strong><br>
               כל ההצעות הפעילות מוצגות כאן ובפקודה <code>/market</code> בבוט.
@@ -341,43 +341,43 @@
           </li>
         </ul>
 
-        <div class="btn-row">
-          <a class="btn-primary" href="https://t.me/Slh_selha_bot" target="_blank" rel="noopener noreferrer">
+        <div class=\"btn-row\">
+          <a class=\"btn-primary\" href=\"https://t.me/Slh_selha_bot\" target=\"_blank\" rel=\"noopener noreferrer\">
             🤖 פתיחת הבוט בטלגרם
           </a>
-          <a class="btn-secondary" href="https://t.me/+HIzvM8sEgh1kNWY0" target="_blank" rel="noopener noreferrer">
+          <a class=\"btn-secondary\" href=\"https://t.me/+HIzvM8sEgh1kNWY0\" target=\"_blank\" rel=\"noopener noreferrer\">
             👥 הצטרפות לקהילת העסקים
           </a>
         </div>
 
-        <div class="hero-footer-note">
+        <div class=\"hero-footer-note\">
           • כל הרישום והשליטה בארנק מתבצעים דרך הבוט בלבד (לא דרך הדפדפן).<br>
           • הדף הזה הוא לוח שוק קהילתי – מציג מי מוכר, כמה, ובאיזה מחיר.
         </div>
       </section>
 
       <!-- צד שמאל – שוק קהילתי -->
-      <section class="market-card">
-        <header class="market-header">
-          <div class="market-title">
+      <section class=\"market-card\">
+        <header class=\"market-header\">
+          <div class=\"market-title\">
             <span>📈</span>
             <div>
               שוק SLH קהילתי
-              <div style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.15rem;">
+              <div style=\"font-size: 0.85rem; color: #9ca3af; margin-top: 0.15rem;\">
                 הצעות מכירה חופשיות בין חברי הקהילה
               </div>
             </div>
           </div>
-          <div class="market-meta">
-            <div id="offers-count">טוען נתוני שוק…</div>
+          <div class=\"market-meta\">
+            <div id=\"offers-count\">טוען נתוני שוק…</div>
           </div>
         </header>
 
-        <div class="market-status" id="market-status">
+        <div class=\"market-status\" id=\"market-status\">
           </div>
 
-        <div class="market-table-wrapper" id="market-table-wrapper">
-          <table class="market-table" id="offers-table" style="display: none;">
+        <div class=\"market-table-wrapper\" id=\"market-table-wrapper\">
+          <table class=\"market-table\" id=\"offers-table\" style=\"display: none;\">
             <thead>
               <tr>
                 <th>#</th>
@@ -390,17 +390,17 @@
             </thead>
             <tbody></tbody>
           </table>
-          <div class="market-empty" id="market-empty" style="display: none;">
+          <div class=\"market-empty\" id=\"market-empty\" style=\"display: none;\">
             אין עדיין הצעות פעילות בשוק.<br>
             תהיה הראשון לפתוח הצעת מכירה דרך הבוט עם הפקודה:
             <code>/sell 10 0.01</code>
           </div>
         </div>
 
-        <div class="market-footer">
+        <div class=\"market-footer\">
           <div>
-            <span class="pill">
-              <span class="pill-dot"></span>
+            <span class=\"pill\">
+              <span class=\"pill-dot\"></span>
               הצעות חדשות מנוהלות דרך הבוט: <code>/sell</code> ו-<code>/market</code>
             </span>
           </div>
@@ -424,7 +424,6 @@
       const emptyEl = document.getElementById('market-empty');
       const countEl = document.getElementById('offers-count');
       const statusEl = document.getElementById('market-status');
-      const wrapper = document.getElementById('market-table-wrapper');
 
       countEl.textContent = 'טוען נתוני שוק…';
       statusEl.textContent = '';
